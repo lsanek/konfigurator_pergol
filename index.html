@@ -331,6 +331,7 @@ const NASTAVENI = {
      vložte ho sem místo e-mailu, aby adresa nebyla vidět ve zdrojovém kódu (méně spamu). */
   FORM_ID: 'libor.sanek@nasepergola.cz',
   KOPIE: 'nasepergola@zahradabezchemie.cz',   // kopie každé poptávky (FormSubmit _cc), víc adres oddělte čárkou
+  OBKLAD_MAX_ROZTEC: 1.5,    // max. vzdálenost sloupů/stojin pod obložením [m]; 0 = výpočet jako v pergola-3d (≈ 1,51 m)
   PLATCE_DPH: true,          // ceny v cenik.js jsou S DPH; true = pod cenou se ukáže i cena bez DPH (dopočtená)
   DPH: 21,
   ZAOKROUHLIT: 100           // zaokrouhlení zobrazené ceny [Kč]
@@ -357,7 +358,7 @@ const K = {
   footH:.02, deckT:.019, svodL:2.0,
   osbT:.018, osbL:2.5, osbW:1.25,   // OSB 18 mm, deska 2500×1250 (výchozí v nástroji)
   floorBeam:.12, floorBoardW:.14, floorBoardT:.045, floorGap:.006, floorPostGap:.01,
-  cladBw:.121, cladBt:.019, cladWind:.6, cladDefl:300, cladK:.013021,
+  cladBw:.121, cladBt:.019, cladWind:.6, cladDefl:300, cladK:.0092,     /* deska spojitá přes 2 pole — volba „2 pole“ v nástroji; palubka jde přes stojinu dál */
   kotvaRozt:.80                     // rozteč kotev pozednice do zdi
 };
 /* sloupy na pozednici: do 4,0 m 2, do 6,0 m 3, nad 6,0 m 4 */
@@ -365,6 +366,8 @@ function nPostsFor(L){ return 2 + (L > 4.0 + 1e-6 ? 1 : 0) + (L > 6.0 + 1e-6 ? 1
 /* krokev = výchozí profil pergola-3d.html; skutečné dimenze se určí až v nástroji */
 function raftFor(){ return {w:.06, h:.14}; }
 function cladSpanLim(){
+  const ruc = (typeof NASTAVENI !== 'undefined') && +NASTAVENI.OBKLAD_MAX_ROZTEC;
+  if(ruc > 0) return ruc;                         // ruční max. rozteč podpor obkladu
   const q = K.cladWind/1000, tm = K.cladBt*1000;
   return Math.pow(10000*(tm*tm*tm/12)/(K.cladK*K.cladDefl*q), 1/3)/1000;
 }
