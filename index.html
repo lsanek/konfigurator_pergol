@@ -330,6 +330,7 @@ const NASTAVENI = {
   /* Odesílání přes FormSubmit (formsubmit.co). Po aktivaci vám FormSubmit pošle náhodný alias —
      vložte ho sem místo e-mailu, aby adresa nebyla vidět ve zdrojovém kódu (méně spamu). */
   FORM_ID: 'libor.sanek@nasepergola.cz',
+  KOPIE: 'nasepergola@zahradabezchemie.cz',   // kopie každé poptávky (FormSubmit _cc), víc adres oddělte čárkou
   PLATCE_DPH: true,          // ceny v cenik.js jsou S DPH; true = pod cenou se ukáže i cena bez DPH (dopočtená)
   DPH: 21,
   ZAOKROUHLIT: 100           // zaokrouhlení zobrazené ceny [Kč]
@@ -1631,6 +1632,7 @@ $('qForm').addEventListener('submit', async e => {
   const data = {
     _subject: `Poptávka pergoly ${fmt1(state.W)} × ${fmt1(state.D)} m — ${f.obec}`,
     _template: 'table', _captcha: 'false', _honey: $('qHoney').value,
+    ...(NASTAVENI.KOPIE ? {_cc: NASTAVENI.KOPIE} : {}),
     'Jméno': f.jmeno, 'Telefon': f.telefon, email: f.email, 'Obec': f.obec, 'Poznámka': f.poznamka || '—',
     'Konfigurace': configText(),
     'Orientační cena': czk(roundP(lastBill.total*k)) + (NASTAVENI.PLATCE_DPH ? ' vč. DPH (' + czk(roundP(lastBill.total/(1 + NASTAVENI.DPH/100))) + ' bez DPH)' : '')
@@ -1645,7 +1647,11 @@ $('qForm').addEventListener('submit', async e => {
     $('formView').style.display = 'none'; $('okView').style.display = '';
   } catch(err){
     console.warn('Poptávka se neodeslala:', err);
-    showErr(`Poptávku se nepodařilo odeslat. <a href="${mailtoLink(f)}">Pošlete ji e-mailem</a> — text se vyplní sám.`);
+    const why = String(err && err.message || '');
+    const akt = /activat/i.test(why);
+    showErr((akt ? 'Formulář čeká na aktivaci — ' : 'Poptávku se nepodařilo odeslat. ') +
+      `<a href="${mailtoLink(f)}">Pošlete ji e-mailem</a> — text se vyplní sám.` +
+      `<br><small style="color:#7a817c">Důvod: ${why.replace(/[<>&]/g, '') || 'neznámý'}</small>`);
   } finally { btn.disabled = false; btn.textContent = 'Odeslat poptávku'; }
 });
 
