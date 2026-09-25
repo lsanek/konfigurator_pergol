@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Konfigurátor pergoly</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1e2622; --ink2:#56605a; --paper:#f6f7f4; --card:#ffffff; --line:#dfe3dc;
+  --moss:#2f4a35; --moss2:#e3ebe2; --wood:#b5793f;
+  --f:"Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  box-sizing:border-box;
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%;margin:0}
+body{font-family:var(--f);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;
+  font-size:15px;line-height:1.45}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 380px;height:100%;min-height:560px}
+.stage{position:relative;overflow:hidden;background:#cfdde6}
+.stage canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+.stage canvas:active{cursor:grabbing}
+.hint{position:absolute;left:18px;bottom:16px;font-size:13px;color:#fff;
+  background:rgba(20,28,24,.42);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  padding:7px 12px;border-radius:999px;pointer-events:none;transition:opacity .6s}
+.sizeTag{position:absolute;left:18px;top:16px;background:rgba(255,255,255,.86);backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);border-radius:12px;padding:10px 14px;line-height:1.15}
+.sizeTag b{font-size:26px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.sizeTag span{display:block;font-size:12.5px;color:var(--ink2);margin-top:3px}
+.viewBtns{position:absolute;right:14px;top:14px;display:flex;gap:6px}
+.viewBtns button{font:500 13px var(--f);border:0;border-radius:999px;padding:7px 12px;cursor:pointer;
+  background:rgba(255,255,255,.86);color:var(--ink);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.viewBtns button:hover{background:#fff}
+
+.panel{display:flex;flex-direction:column;background:var(--paper);border-left:1px solid var(--line);min-height:0}
+.scroll{overflow-y:auto;padding:26px 26px 8px;flex:1 1 auto}
+h1{font-size:30px;line-height:1.05;font-weight:800;letter-spacing:-.03em;margin:0 0 6px}
+.lead{margin:0 0 22px;color:var(--ink2);font-size:14.5px;max-width:34ch}
+section{padding:18px 0;border-top:1px solid var(--line)}
+h2{font-size:17px;font-weight:700;margin:0 0 12px;letter-spacing:-.01em;display:flex;justify-content:space-between;align-items:baseline}
+h2 small{font-size:13px;font-weight:500;color:var(--ink2)}
+
+.dim{margin-bottom:14px}
+.dim .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.dim label{font-weight:500}
+.dim output{font-size:22px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.dim output small{font-size:14px;font-weight:500;color:var(--ink2);margin-left:2px}
+.dim .row{display:flex;align-items:center;gap:10px}
+.step{flex:0 0 34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--card);
+  font:600 18px/1 var(--f);color:var(--ink);cursor:pointer}
+.step:hover{border-color:var(--moss)}
+input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:34px;background:transparent;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(90deg,var(--moss) var(--p,50%),var(--line) var(--p,50%))}
+input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--line)}
+input[type=range]::-moz-range-progress{height:4px;border-radius:2px;background:var(--moss)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;
+  border:2px solid var(--moss);margin-top:-9px;box-shadow:0 1px 3px rgba(0,0,0,.18)}
+input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:2px solid var(--moss)}
+.note{font-size:12.5px;color:var(--ink2);margin:6px 0 0}
+
+.plan{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center}
+.plan svg{width:150px;height:auto;display:block}
+.plan svg .side{cursor:pointer}
+.plan svg .side rect.hit{fill:transparent}
+.plan svg .side rect.bar{fill:#fff;stroke:#b9c1b7;stroke-width:1.5;transition:fill .15s}
+.plan svg .side.on rect.bar{fill:var(--wood);stroke:#8a5a2c}
+.plan svg .side:hover rect.bar,.plan svg .side:focus-visible rect.bar{stroke:var(--moss);stroke-width:2.5}
+.plan svg .side:focus{outline:none}
+.sideList{display:flex;flex-direction:column;gap:6px}
+.chk{display:flex;align-items:center;gap:9px;font-size:14px;cursor:pointer;user-select:none}
+.chk input{appearance:none;-webkit-appearance:none;width:20px;height:20px;border-radius:6px;border:1.5px solid #b9c1b7;
+  background:var(--card);display:grid;place-content:center;margin:0;cursor:pointer;flex:0 0 auto}
+.chk input:checked{background:var(--moss);border-color:var(--moss)}
+.chk input:checked::after{content:"";width:10px;height:6px;border:2px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.chk input:focus-visible{outline:2px solid var(--moss);outline-offset:2px}
+
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:14px;cursor:pointer}
+.toggle .t{font-weight:500}
+.toggle .d{display:block;font-size:12.5px;color:var(--ink2);font-weight:400;margin-top:2px}
+.sw{appearance:none;-webkit-appearance:none;width:46px;height:28px;border-radius:999px;background:#c9cfc6;position:relative;
+  cursor:pointer;flex:0 0 auto;margin:0;transition:background .2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;
+  box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .2s}
+.sw:checked{background:var(--moss)}
+.sw:checked::after{transform:translateX(18px)}
+.sw:focus-visible{outline:2px solid var(--moss);outline-offset:3px}
+
+.swatches{display:flex;gap:10px;flex-wrap:wrap}
+.swatch{width:44px;height:44px;border-radius:50%;border:2px solid transparent;padding:3px;cursor:pointer;background:none}
+.swatch i{display:block;width:100%;height:100%;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12)}
+.swatch[aria-checked=true]{border-color:var(--moss)}
+.swatch:focus-visible{outline:2px solid var(--moss);outline-offset:2px}
+.colorName{font-size:13px;color:var(--ink2);margin-top:8px}
+
+.price{padding:16px 26px calc(18px + env(safe-area-inset-bottom,0px));background:var(--card);border-top:1px solid var(--line)}
+.price .lbl{font-size:13px;color:var(--ink2)}
+.price .big{font-size:36px;font-weight:800;letter-spacing:-.03em;line-height:1.05;font-variant-numeric:tabular-nums;margin:2px 0 2px}
+.price .sub{font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.price .split{display:grid;grid-template-columns:1fr auto;gap:2px 12px;font-size:13px;margin:10px 0 12px;font-variant-numeric:tabular-nums}
+.price .split span:nth-child(even){text-align:right}
+.cta{display:block;width:100%;border:0;border-radius:12px;padding:14px 16px;background:var(--moss);color:#fff;
+  font:700 16px var(--f);cursor:pointer;text-align:center;text-decoration:none}
+.cta:hover{background:#243b2a}
+.cta:focus-visible{outline:3px solid #9bb59d;outline-offset:2px}
+.fine{font-size:11.5px;color:var(--ink2);margin:10px 0 0;line-height:1.4}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;
+  border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .3s}
+.toast.show{opacity:1}
+
+
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:#e8ebe5;border-radius:10px;padding:3px}
+.seg.two{grid-template-columns:repeat(2,1fr)}
+.seg button{font:500 13.5px var(--f);border:0;background:transparent;border-radius:8px;padding:8px 4px;cursor:pointer;color:var(--ink)}
+.seg button[aria-pressed=true]{background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.12);font-weight:700}
+.seg button:disabled{color:#a9b0a6;cursor:not-allowed}
+.seg button:focus-visible{outline:2px solid var(--moss);outline-offset:1px}
+.field{margin-top:14px}
+.field>.lab{font-weight:500;margin-bottom:6px;display:block}
+.sideRow{border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:6px}
+.sideRow .chk{padding:10px 12px}
+.sideRow.dis{opacity:.55}
+.sideDet{padding:2px 12px 12px;display:none}
+.sideRow.on .sideDet{display:block}
+.mini{display:grid;grid-template-columns:62px 1fr 64px;align-items:center;gap:8px;font-size:13px;margin-top:4px}
+.mini output{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.mini input[type=range]{height:28px}
+.mat{margin:0;padding:0;list-style:none;font-size:13.5px}
+.mat li{padding:7px 0;border-bottom:1px dashed var(--line);display:grid;grid-template-columns:118px 1fr;gap:10px}
+.mat li:last-child{border-bottom:0}
+.mat b{font-weight:600}
+.mat span{color:var(--ink2)}
+
+.modal{position:fixed;inset:0;background:rgba(20,28,24,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal.open{display:flex}
+.dlg{background:var(--paper);border-radius:16px;max-width:460px;width:100%;max-height:calc(100vh - 32px);overflow:auto;padding:22px 22px 18px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.dlg h3{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:0 0 4px}
+.dlg .sum{font-size:13px;color:var(--ink2);margin:0 0 14px;white-space:pre-line;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;max-height:150px;overflow:auto}
+.dlg label.f{display:block;font-size:13.5px;font-weight:500;margin:10px 0 4px}
+.dlg input.i,.dlg textarea{font:15px var(--f);width:100%;padding:10px 12px;border:1px solid #c9cfc6;border-radius:10px;background:#fff;color:var(--ink)}
+.dlg input.i:focus,.dlg textarea:focus{outline:2px solid var(--moss);border-color:var(--moss)}
+.dlg .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dlg .acts{display:flex;gap:10px;margin-top:16px}
+.dlg .acts .cta{flex:1}
+.btn2{border:1px solid var(--line);background:#fff;border-radius:12px;padding:14px 16px;font:600 15px var(--f);cursor:pointer;color:var(--ink)}
+.dlg .err{color:#9b2c1f;font-size:13.5px;margin-top:10px;display:none}
+.dlg .ok{text-align:center;padding:18px 4px}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+@media (max-width:480px){.dlg .row2{grid-template-columns:1fr}}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto auto;height:auto}
+  .stage{height:58vh;min-height:320px}
+  .panel{border-left:0}
+  .scroll{padding:20px 18px 8px;overflow:visible}
+  .price{position:sticky;bottom:0;padding:12px 18px calc(12px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 18px rgba(0,0,0,.06)}
+  .price .big{font-size:28px}
+  .price .split{display:none}
+  .sizeTag b{font-size:20px}
+  .viewBtns{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stage" id="stage">
+    <canvas id="c" aria-label="3D náhled pergoly — tažením otočíte, kolečkem přiblížíte"></canvas>
+    <div class="sizeTag"><b id="tagSize">3,0 × 3,0 m</b><span id="tagArea">17,5 m² půdorys · střecha 24,9 m²</span></div>
+    <div class="viewBtns">
+      <button type="button" data-view="front">Zepředu</button>
+      <button type="button" data-view="side">Z boku</button>
+      <button type="button" data-view="top">Shora</button>
+      <button type="button" data-view="under">Zespodu</button>
+    </div>
+    <div class="hint" id="hint">Tažením otočíte, kolečkem přiblížíte</div>
+  </div>
+
+  <aside class="panel">
+    <div class="scroll">
+      <h1>Sestavte si pergolu</h1>
+      <p class="lead">Dřevěná pergola s pultovou střechou. Nastavte rozměry a doplňky, cena se přepočítá hned.</p>
+
+      <section aria-labelledby="hRozm">
+        <h2 id="hRozm">Rozměry <small>vnější hrany sloupů</small></h2>
+        <div class="dim">
+          <div class="top"><label for="w">Šířka</label><output id="wOut" for="w">3,0<small>m</small></output></div>
+          <div class="row">
+            <button class="step" type="button" data-for="w" data-d="-1" aria-label="Zmenšit šířku">−</button>
+            <input type="range" id="w" min="2.5" max="8" step="0.1" value="3">
+            <button class="step" type="button" data-for="w" data-d="1" aria-label="Zvětšit šířku">+</button>
+          </div>
+        </div>
+        <div class="dim">
+          <div class="top"><label for="d">Hloubka</label><output id="dOut" for="d">3,0<small>m</small></output></div>
+          <div class="row">
+            <button class="step" type="button" data-for="d" data-d="-1" aria-label="Zmenšit hloubku">−</button>
+            <input type="range" id="d" min="2" max="6" step="0.1" value="3">
+            <button class="step" type="button" data-for="d" data-d="1" aria-label="Zvětšit hloubku">+</button>
+          </div>
+        </div>
+        <p class="note" id="infoKon"></p>
+      </section>
+
+      <section aria-labelledby="hUm">
+        <label class="toggle" for="wall">
+          <span><span class="t" id="hUm">Ke stěně domu</span><span class="d">Vyšší pozednice se ukotví do zdi, sloupy jsou jen u okapu</span></span>
+          <input type="checkbox" class="sw" id="wall" role="switch">
+        </label>
+        <div class="field">
+          <span class="lab" id="lOkap">Sklon střechy</span>
+          <div class="seg two" id="segOkap" role="group" aria-labelledby="lOkap"></div>
+          <p class="note" id="okapNote"></p>
+        </div>
+        <div class="field">
+          <span class="lab" id="lSvod">Svod <small style="font-weight:400;color:var(--ink2)">při pohledu na okap</small></span>
+          <div class="seg two" id="segSvod" role="group" aria-labelledby="lSvod">
+            <button type="button" data-v="L">Vlevo</button><button type="button" data-v="R">Vpravo</button>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="hStrecha">
+        <h2 id="hStrecha">Střecha</h2>
+        <div class="dim">
+          <div class="top"><label for="slope">Sklon</label><output id="slopeOut" for="slope">5<small>°</small></output></div>
+          <div class="row">
+            <button class="step" type="button" data-for="slope" data-d="-1" aria-label="Snížit sklon">−</button>
+            <input type="range" id="slope" min="5" max="12" step="1" value="5">
+            <button class="step" type="button" data-for="slope" data-d="1" aria-label="Zvýšit sklon">+</button>
+          </div>
+          <p class="note" id="slopeNote"></p>
+        </div>
+        <div class="field">
+          <span class="lab" id="lDeck">Záklop pod plechem</span>
+          <div class="seg two" id="segDeck" role="group" aria-labelledby="lDeck">
+            <button type="button" data-v="palubky">Palubky</button><button type="button" data-v="osb">OSB desky</button>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="hObl">
+        <h2 id="hObl">Obložení stěn <small id="oblArea">žádné</small></h2>
+        <div class="plan" style="grid-template-columns:150px 1fr;margin-bottom:10px">
+          <svg id="planSvg" viewBox="0 0 150 140" role="group" aria-label="Půdorys pergoly — klepnutím na stranu ji obložíte"></svg>
+          <p class="note" style="margin:0">Klepněte na stranu v půdorysu nebo ji zaškrtněte. U každé strany můžete zadat, odkud kam a jak vysoko obložit.</p>
+        </div>
+        <div id="sideList"></div>
+      </section>
+
+      <section aria-labelledby="hPod">
+        <label class="toggle" for="floor">
+          <span><span class="t" id="hPod">Dřevěná podlaha</span><span class="d" id="floorInfo"></span></span>
+          <input type="checkbox" class="sw" id="floor" role="switch">
+        </label>
+        <label class="toggle field" for="patky">
+          <span><span class="t" id="hPat">Betonové patky</span><span class="d" id="patInfo"></span></span>
+          <input type="checkbox" class="sw" id="patky" role="switch" checked>
+        </label>
+        <label class="toggle field" for="natP"><span><span class="t">Natřít pergolu</span><span class="d">Impregnace je vždy, nátěr lazurou ve 2 vrstvách</span></span><input type="checkbox" class="sw" id="natP" role="switch"></label>
+        <label class="toggle field" for="natC" id="rowNatC"><span><span class="t">Natřít obložení</span></span><input type="checkbox" class="sw" id="natC" role="switch"></label>
+        <label class="toggle field" for="natF" id="rowNatF"><span><span class="t">Natřít podlahu</span></span><input type="checkbox" class="sw" id="natF" role="switch"></label>
+        <div class="field" id="colorBox">
+          <span class="lab">Barva nátěru <small style="font-weight:400;color:var(--ink2)">cena se nemění</small></span>
+          <div class="swatches" id="swatches" role="radiogroup" aria-label="Barva nátěru"></div>
+          <div class="colorName" id="colorName"></div>
+        </div>
+      </section>
+
+      <section aria-labelledby="hStr">
+        <h2 id="hStr">Barva střechy <small>plech a oplechování</small></h2>
+        <div class="swatches" id="roofSwatches" role="radiogroup" aria-labelledby="hStr"></div>
+        <div class="colorName" id="roofName"></div>
+      </section>
+
+      <section aria-labelledby="hMat">
+        <h2 id="hMat">Z čeho pergolu stavíme</h2>
+        <ul class="mat" id="matList"></ul>
+      </section>
+    </div>
+
+    <div class="price" aria-live="polite">
+      <div class="lbl" id="priceLbl">Orientační cena s montáží</div>
+      <div class="big" id="priceBig">—</div>
+      <div class="sub" id="priceSub"></div>
+      <div class="split" id="split"></div>
+      <a class="cta" id="cta" href="#">Poptat tuto pergolu</a>
+      <p class="fine">Cena zahrnuje veškerý materiál a práce z popisu včetně montáže. Jde o orientační rozpočet, konečnou cenu upřesníme po dohodě se zákazníkem. K ceně se připočítá doprava na místo.</p>
+    </div>
+  </aside>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="dlg">
+    <div id="formView">
+      <h3 id="mTitle">Poptat tuto pergolu</h3>
+      <p class="note" style="margin:0 0 10px">Pošleme vám nezávaznou nabídku a domluvíme zaměření.</p>
+      <div class="sum" id="mSum"></div>
+      <form id="qForm" novalidate>
+        <div class="row2">
+          <div><label class="f" for="qName">Jméno a příjmení</label><input class="i" id="qName" name="jmeno" autocomplete="name" required></div>
+          <div><label class="f" for="qPhone">Telefon</label><input class="i" id="qPhone" name="telefon" type="tel" autocomplete="tel" required></div>
+        </div>
+        <label class="f" for="qEmail">E-mail</label><input class="i" id="qEmail" name="email" type="email" autocomplete="email" required>
+        <label class="f" for="qCity">Obec, kde se bude stavět</label><input class="i" id="qCity" name="obec" autocomplete="address-level2" required>
+        <label class="f" for="qNote">Poznámka <span style="font-weight:400;color:var(--ink2)">(nepovinné)</span></label>
+        <textarea id="qNote" name="poznamka" rows="3" placeholder="Např. zdivo a zateplení stěny, přístup na pozemek, termín"></textarea>
+        <input class="hp" type="text" name="_honey" id="qHoney" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <div class="err" id="qErr" role="alert"></div>
+        <div class="acts">
+          <button type="button" class="btn2" id="qCancel">Zpět</button>
+          <button type="submit" class="cta" id="qSend">Odeslat poptávku</button>
+        </div>
+        <p class="fine">Údaje použijeme jen pro vyřízení poptávky.</p>
+      </form>
+    </div>
+    <div id="okView" class="ok" style="display:none">
+      <h3>Poptávka je odeslaná</h3>
+      <p class="note">Děkujeme, ozveme se vám co nejdříve. Kopie konfigurace přišla na náš e-mail.</p>
+      <div class="acts"><button type="button" class="cta" id="okClose">Zavřít</button></div>
+    </div>
+  </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="cenik.js"></script>
+<script>
+/* ═══════════════ NASTAVENÍ PRO WEB — upravte podle sebe ═══════════════ */
+const NASTAVENI = {
+  EMAIL: 'libor.sanek@nasepergola.cz',   // kam chodí poptávky
+  /* Odesílání přes FormSubmit (formsubmit.co). Po aktivaci vám FormSubmit pošle náhodný alias —
+     vložte ho sem místo e-mailu, aby adresa nebyla vidět ve zdrojovém kódu (méně spamu). */
+  FORM_ID: 'libor.sanek@nasepergola.cz',
+  PLATCE_DPH: true,          // ceny v cenik.js jsou S DPH; true = pod cenou se ukáže i cena bez DPH (dopočtená)
+  DPH: 21,
+  ZAOKROUHLIT: 100           // zaokrouhlení zobrazené ceny [Kč]
+};
+/* Ceník je v samostatném souboru cenik.js (upravuje se v cenik-editor.html). */
+/* Všechny ceny v cenik.js jsou S DPH. Výchozí sazby = výchozí ceník pergola-3d.html. Co chybí v cenik.js, doplní se odsud (starší cenik.js tak nerozbije cenu). */
+const CENIK_VYCHOZI = {m3:12500, bm:{}, prorez:12, palubky:350, osb:260, plech:320, oplechovani:180, zlab:450,
+  patka:1800, trmen:350, impregnace:90, nater:200, spoj:8, montaz:1350, doprava:0, praceFix:0, marze:0,
+  obklad:700, podlaha:1800, kotvaZed:0, obkladNater:400, podlahaNater:400};
+if(typeof CENIK === 'undefined') var CENIK = {};
+Object.keys(CENIK_VYCHOZI).forEach(k => { if(typeof CENIK[k] !== typeof CENIK_VYCHOZI[k] || (typeof CENIK[k] === 'number' && !isFinite(CENIK[k]))) CENIK[k] = CENIK_VYCHOZI[k]; });
+
+/* ═══════════════ VÝPOČETNÍ JÁDRO ═══════════════
+   Geometrie i cena vycházejí ze stejného seznamu dílů — co je v 3D, to je v ceně.
+   Základ pravidel = pergola-3d.html (pultová střecha). Rozdíly proti nástroji jsou
+   označené „ROZDÍL“ v komentářích. Model se počítá v lokální soustavě:
+   x = podél okapu, z = po spádu (+z = okap), pak se natočí podle strany okapu. */
+const K = {
+  post:.12, plateW:.12, plateH:.12, raster:.625,
+  vazW:.12, vazH:.12, braceT:.12, braceD:.60, notch:.03,
+  H:2.40,                           // horní hrana pozednice u okapu
+  slopeDeg:5,                      // výchozí sklon; zákazník volí 5–12°
+  overMin:.30, overMinE:.30, plateOverMin:.05,
+  footH:.02, deckT:.019, svodL:2.0,
+  osbT:.018, osbL:2.5, osbW:1.25,   // OSB 18 mm, deska 2500×1250 (výchozí v nástroji)
+  floorBeam:.12, floorBoardW:.14, floorBoardT:.045, floorGap:.006, floorPostGap:.01,
+  cladBw:.121, cladBt:.019, cladWind:.6, cladDefl:300, cladK:.013021,
+  kotvaRozt:.80                     // rozteč kotev pozednice do zdi
+};
+/* sloupy na pozednici: do 4,0 m 2, do 6,0 m 3, nad 6,0 m 4 */
+function nPostsFor(L){ return 2 + (L > 4.0 + 1e-6 ? 1 : 0) + (L > 6.0 + 1e-6 ? 1 : 0); }
+/* krokev = výchozí profil pergola-3d.html; skutečné dimenze se určí až v nástroji */
+function raftFor(){ return {w:.06, h:.14}; }
+function cladSpanLim(){
+  const q = K.cladWind/1000, tm = K.cladBt*1000;
+  return Math.pow(10000*(tm*tm*tm/12)/(K.cladK*K.cladDefl*q), 1/3)/1000;
+}
+/* natočení podle strany okapu (strany půdorysu: F = zadní/horní, B = přední/dolní, L, R) */
+const OKAP_ROT = {B:0, F:Math.PI, R:Math.PI/2, L:-Math.PI/2};
+function rotXZ(x, z, t){ const c = Math.cos(t), s = Math.sin(t); return [x*c + z*s, -x*s + z*c]; }
+
+function geometry(cfg){
+  const legacy = !!cfg.legacy;
+  const okap = cfg.okap || 'B', th = OKAP_ROT[okap];
+  const Lbase = (okap === 'B' || okap === 'F') ? cfg.W : cfg.D;
+  const Dbase = (okap === 'B' || okap === 'F') ? cfg.D : cfg.W;
+  const wall = !!cfg.wall;
+  const nPosts = cfg.nPosts || nPostsFor(Lbase);
+  const rf = raftFor(Dbase);
+  const slope = legacy ? .10 : Math.tan((cfg.slopeDeg || K.slopeDeg)*Math.PI/180);
+  const deck = cfg.deck === 'osb' ? 'osb' : 'palubky', deckT = deck === 'osb' ? K.osbT : K.deckT;
+  const roofUp = 0;                              // plech přímo na záklopu (jako v pergola-3d.html)
+  const r = Math.max(rf.w + .03, K.raster, (Lbase + 1)/300);
+  const zb = rf.w/2 - .02;
+  const kP = Math.max(1, Math.ceil((Lbase + 2*K.plateOverMin - zb - 1e-9)/r));
+  const L = kP*r + zb;
+  const cosA = Math.cos(Math.atan(slope));
+  const D = Dbase - K.post;
+  const oT0 = wall ? 0 : K.overMin;             // u zdi krokve končí na líci zdi (přesah nahoře 0, jako v nástroji)
+  const kR = Math.max(1, Math.ceil(((D + K.plateW + oT0 + K.overMinE)/cosA)/r - 1e-9));
+  const sur = kR*r*cosA - D - K.plateW - oT0 - K.overMinE;
+  const overT = wall ? 0 : oT0 + sur/2, overE = wall ? K.overMinE + sur : K.overMinE + sur/2;
+  const zF = -D/2, zB = D/2, hB = K.H, hF = K.H + slope*D, ang = Math.atan2(hF - hB, D);
+  const yUnder = z => hF - K.notch - slope*(z - (zF + K.plateW/2));
+  const topKrok = z => yUnder(z) + rf.h/cosA;
+  const topDeck = z => topKrok(z) + deckT/cosA;
+  const topLat  = z => topDeck(z) + roofUp/cosA;
+  const x0 = -Lbase/2 + K.post/2, span = Lbase - K.post;
+  const xs = []; for(let i = 0; i < nPosts; i++) xs.push(x0 + i*span/(nPosts - 1));
+  const raftXs = [];
+  { const xA = -L/2 + rf.w/2, xB = L/2 - rf.w/2, edgeX = -L/2 - .02;
+    raftXs.push(xA);
+    for(let d = r; ; d += r){ const x = edgeX + d; if(x > xB + 1e-9) break;
+      if(x <= xA + 1e-9 || x >= xB - 1e-9) continue; raftXs.push(x); }
+    raftXs.push(xB); raftXs.sort((a, b) => a - b);
+    for(let i = raftXs.length - 1; i > 0; i--)
+      if(raftXs[i] - raftXs[i-1] < rf.w + .02){
+        const pul = i >= 2 ? (raftXs[i] - raftXs[i-2])/2 : 0;
+        if(i >= 2 && raftXs[i] - raftXs[i-2] > r + 1e-9 && pul >= rf.w + .02) raftXs[i-1] = (raftXs[i-2] + raftXs[i])/2;
+        else raftXs.splice(i === raftXs.length - 1 ? i - 1 : i, 1);
+      }
+  }
+  const zTopE = zF - K.plateW/2 - overT, zEaveE = zB + K.plateW/2 + overE;
+  const rl = (zEaveE - zTopE)/cosA, wDeck = L + .04;
+  const zWall = zF - K.plateW/2;                 // líc zdi (pozednice leží na zdi)
+  const g = {cfg, okap, th, wall, Lbase, Dbase, nPosts, L, D, r, rl, cosA, ang, slope, rf, roofUp,
+             zF, zB, hF, hB, xs, raftXs, zTopE, zEaveE, wDeck, zWall, deck, deckT,
+             yUnder, topKrok, topDeck, topLat, parts:[], timber:[], extra:[], cladPolys:[]};
+  const P = g.parts, T = g.timber;
+  const box = (w, h, d, x, y, z, mat, o) => P.push(Object.assign({k:'box', w, h, d, x, y, z, mat}, o || {}));
+  const tim = (name, w, h, len, grp, noPaint) => T.push({name, w, h, len, grp: grp || 'konstr', noPaint:!!noPaint});
+
+  /* ── světové strany → lokální ── */
+  const worldToLocalSide = s => {
+    const c = {F:[0, -1], B:[0, 1], L:[-1, 0], R:[1, 0]}[s];
+    const [lx, lz] = rotXZ(c[0], c[1], -th);
+    return Math.abs(lx) > Math.abs(lz) ? (lx < 0 ? 'L' : 'R') : (lz < 0 ? 'F' : 'B');
+  };
+  g.worldToLocalSide = worldToLocalSide;
+  g.wallWorldSide = ['F','B','L','R'].find(s => worldToLocalSide(s) === 'F');
+
+  /* ── lokální strany pro obložení ── */
+  const sides = {
+    L:{axis:'x', line:xs[0], plane:xs[0] - K.post/2, dir:-1, u0:-Dbase/2, u1:Dbase/2,
+       sup: wall ? [zWall, zB] : [zF, zB], supTol: wall ? [0.005, .08] : [.08, .08]},
+    R:{axis:'x', line:xs[nPosts-1], plane:xs[nPosts-1] + K.post/2, dir:1, u0:-Dbase/2, u1:Dbase/2,
+       sup: wall ? [zWall, zB] : [zF, zB], supTol: wall ? [0.005, .08] : [.08, .08]},
+    F:{axis:'z', line:zF, plane:zF - K.plateW/2, dir:-1, u0:-Lbase/2, u1:Lbase/2, sup:xs.slice()},
+    B:{axis:'z', line:zB, plane:zB + K.plateW/2, dir:1, u0:-Lbase/2, u1:Lbase/2, sup:xs.slice()}
+  };
+  g.sides = sides;
+
+  /* převod rozsahu obložení ze světa (od–do v m, výška) do lokálu */
+  const cladLocal = {};
+  Object.entries(cfg.clad || {}).forEach(([ws, c]) => {
+    const ls = worldToLocalSide(ws);
+    if(wall && ls === 'F') return;                 // u zdi se neobkládá
+    const W = cfg.W, Dw = cfg.D;
+    const pt = t => (ws === 'F' || ws === 'B') ? [-W/2 + t, ws === 'F' ? -Dw/2 : Dw/2] : [ws === 'L' ? -W/2 : W/2, -Dw/2 + t];
+    const a = rotXZ(...pt(c.a), -th), b = rotXZ(...pt(c.b), -th);
+    const ax = sides[ls].axis === 'z' ? 0 : 1;
+    let u0 = Math.min(a[ax], b[ax]), u1 = Math.max(a[ax], b[ax]);
+    u0 = Math.max(u0, sides[ls].u0); u1 = Math.min(u1, sides[ls].u1);
+    if(u1 - u0 < .1) return;
+    cladLocal[ls] = {u0, u1, h: c.h || null};
+  });
+  g.cladLocal = cladLocal;
+
+  /* ── stojiny obložení ──
+     ROZDÍL: konec obkladu, který nedosedá na sloup/zeď, dostane vlastní stojinu
+     (nástroj s podporou na konci panelu počítá, i když tam žádný sloup není). */
+  const lim = cladSpanLim();
+  Object.entries(cladLocal).forEach(([s, c]) => {
+    const sd = sides[s];
+    const supPos = sd.sup.slice();                                   // osy / líc zdi
+    const near = (u, i) => Math.abs(u - (sd.axis === 'z' ? sd.sup[i] : sd.sup[i])) <= (sd.supTol ? sd.supTol[i] : .08);
+    /* přichycení konců k blízkému sloupu (do 15 cm) — žádné nesmyslně krátké pole */
+    const snap = u => { for(let i = 0; i < supPos.length; i++){ const p = supPos[i];
+        const edge = (sd.supTol && sd.supTol[i] < .01) ? p : (u < p ? p - K.post/2 : p + K.post/2);
+        if(Math.abs(u - p) < .15 + K.post/2) return {u: u < p ? Math.min(u, edge) : Math.max(u, edge), sup:true}; }
+      return {u, sup:false}; };
+    const s0 = snap(c.u0), s1 = snap(c.u1);
+    c.u0 = Math.max(sd.u0, s0.u); c.u1 = Math.min(sd.u1, s1.u);
+    const re = sd.sup.filter(p => p >= c.u0 - .07 && p <= c.u1 + .07);
+    const add = u => { g.extra.push(sd.axis === 'x' ? {x:sd.line, z:u, s} : {x:u, z:sd.line, s}); re.push(u); };
+    if(!s0.sup) add(c.u0 + K.post/2);
+    if(!s1.sup) add(c.u1 - K.post/2);
+    re.sort((a, b) => a - b);
+    const base = re.slice();
+    for(let i = 1; i < base.length; i++){
+      const d = base[i] - base[i-1]; if(d <= lim + 1e-6) continue;
+      const k = Math.ceil(d/lim) - 1;
+      for(let j = 1; j <= k; j++) add(+(base[i-1] + d*j/(k+1)).toFixed(3));
+    }
+  });
+  const vz1 = zF + K.post/2, vz2 = zB - K.plateW/2;
+  const extraTop = (x, z) => {
+    let t = yUnder(z);
+    if(Math.abs(z - zF) <= K.plateW/2 + .001) t = Math.min(t, hF - K.plateH);
+    if(Math.abs(z - zB) <= K.plateW/2 + .001) t = Math.min(t, hB - K.plateH);
+    if(!wall) xs.forEach(xv => { if(Math.abs(x - xv) <= K.vazW/2 + .001 && z >= vz1 - .001 && z <= vz2 + .001) t = Math.min(t, hB - K.vazH); });
+    return t;
+  };
+
+  /* ── pozednice, sloupy, patky, vzpěry ── */
+  [[zF, hF, 'F'], [zB, hB, 'B']].forEach(([z, hTop, rk]) => {
+    const bot = hTop - K.plateH, onWall = wall && rk === 'F';
+    box(L, K.plateH, K.plateW, 0, hTop - K.plateH/2, z, 'plate', {grain:'x', kvh:true});
+    tim('pozednice', K.plateW, K.plateH, L);
+    if(onWall){ g.nKotev = Math.ceil((L - .2)/K.kotvaRozt) + 1; return; }
+    xs.forEach((x, i) => {
+      const hh = bot - K.footH;
+      box(K.post, hh, K.post, x, K.footH + hh/2, z, 'post', {grain:'y', kvh:true});
+      tim(rk === 'F' ? 'sloup přední' : 'sloup zadní', K.post, K.post, hh);
+      P.push({k:'foot', x, z, a:K.post});
+      [-1, 1].forEach(dir => {
+        if((dir < 0 && i === 0) || (dir > 0 && i === nPosts - 1)) return;
+        P.push({k:'brace', x:x + dir*K.post/2, y:bot, z, mir:dir < 0, ry:0});
+        tim('vzpěra', K.braceT, K.braceT, K.braceD*Math.SQRT2);
+      });
+    });
+  });
+  /* ── vaznice — jen u volně stojící pergoly (u zdi se nedělají) ── */
+  g.vazLen = 0;
+  if(!wall){ const len = vz2 - vz1, yV = hB - K.vazH;
+    g.vazLen = len;
+    xs.forEach(x => {
+      box(K.vazW, K.vazH, len, x, hB - K.vazH/2, (vz1 + vz2)/2, 'vaz', {grain:'z', kvh:true});
+      tim('vaznice', K.vazW, K.vazH, len);
+      P.push({k:'brace', x, y:yV, z:zF + K.post/2, mir:false, ry:-Math.PI/2}); tim('vzpěra', K.braceT, K.braceT, K.braceD*Math.SQRT2);
+      P.push({k:'brace', x, y:yV, z:zB - K.post/2, mir:false, ry:Math.PI/2}); tim('vzpěra', K.braceT, K.braceT, K.braceD*Math.SQRT2);
+    });
+  }
+  /* ── krokve ── */
+  raftXs.forEach(x => {
+    const zc = (zTopE + zEaveE)/2;
+    box(rf.w, rf.h, rl, x, yUnder(zc) + (rf.h/2)*cosA, zc, 'raft', {rx:ang, grain:'z', kvh:true});
+    tim('krokev', rf.w, rf.h, rl);
+  });
+  /* ── záklop: palubky 19 mm nebo OSB 18 mm (rozvržení desek jako v nástroji) ── */
+  if(deck === 'palubky'){
+    for(let i = 0; i < 2000; i++){
+      const t0 = i*(.115 + .005), bw = Math.min(.115, rl - t0); if(bw < .015) break;
+      const zHi = zEaveE - t0*cosA, zLo = zEaveE - (t0 + bw)*cosA, zc = (zHi + zLo)/2;
+      box(wDeck, deckT, (zHi - zLo)/cosA, 0, topKrok(zc) + (deckT/2)*cosA, zc, 'deck', {rx:ang, grain:'x'});
+    }
+  } else {
+    const BL = K.osbL, BW = K.osbW, spr = .003;
+    let t = 0, row = 0;
+    while(t < rl - .005 && row < 300){
+      const h = Math.min(BW, rl - t), zHi = zEaveE - t*cosA, zLo = zEaveE - (t + h)*cosA, zc = (zHi + zLo)/2;
+      osbRadaCalc(-wDeck/2, wDeck/2, BL, raftXs, row).forEach(([xa, xb]) =>
+        box(xb - xa - spr, deckT, h - spr, (xa + xb)/2, topKrok(zc) + (deckT/2)*cosA, zc, 'osb', {rx:ang}));
+      t += h; row++;
+    }
+    /* počet desek = osbBoards() z nástroje */
+    const rows = Math.ceil(rl/BW - 1e-9);
+    g.osbN = Math.ceil(rows*wDeck/BL - 1e-9); g.osbBoardArea = BL*BW;
+  }
+  g.deckArea = wDeck*rl;
+  P.push({k:'roof'});
+  /* ── stojiny obložení ── */
+  g.extra.forEach(ep => {
+    const hh = extraTop(ep.x, ep.z) - K.footH;
+    ep.h = hh;
+    box(K.post, hh, K.post, ep.x, K.footH + hh/2, ep.z, 'post', {grain:'y', grp:'clad', kvh:true});
+    P.push({k:'foot', x:ep.x, z:ep.z, a:K.post, grp:'clad'});
+    tim('stojina obložení', K.post, K.post, hh, 'clad');
+  });
+
+  /* ── palubky obložení — souvislé, bez mezer, horní hrana přesně ke střeše ──
+     ROZDÍL: nástroj seká desky po schodech a končí pod krokví; tady deska
+     sleduje spád až k záklopu a obchází pozednice a krokve. Plocha = skutečné desky. */
+  g.cladArea = 0; g.cladBySide = {};
+  const EPS = .002;
+  Object.entries(cladLocal).forEach(([s, c]) => {
+    const sd = sides[s], bw = K.cladBw, bt = K.cladBt, y0 = K.footH;
+    let area = 0;
+    /* horní hrana v rovině obkladu */
+    let topFn, blocks = [];
+    if(sd.axis === 'x'){
+      const xa = Math.min(sd.plane, sd.plane + sd.dir*bt), xb = Math.max(sd.plane, sd.plane + sd.dir*bt);
+      const hit = raftXs.some(x => x + rf.w/2 > xa && x - rf.w/2 < xb);
+      topFn = u => hit ? yUnder(u) : topKrok(Math.max(zTopE, Math.min(zEaveE, u)));
+      /* pozednice procházejí rovinou boku — deska se kolem nich vyřízne */
+      blocks.push([zF - K.plateW/2 - EPS, zF + K.plateW/2 + EPS, hF - K.plateH - EPS, hF + EPS]);
+      blocks.push([zB - K.plateW/2 - EPS, zB + K.plateW/2 + EPS, hB - K.plateH - EPS, hB + EPS]);
+    } else {
+      const zp = sd.plane + sd.dir*bt/2, yu = yUnder(zp), yt = topKrok(zp);
+      topFn = () => yt;
+      raftXs.forEach(x => blocks.push([x - rf.w/2 - EPS, x + rf.w/2 + EPS, yu - EPS, yt + 1]));
+    }
+    const yCap = c.h ? K.footH + c.h : Infinity;
+    /* rohy: přední/zadní desky přesahují o tloušťku bočních, aby roh byl zavřený */
+    let e0 = c.u0, e1 = c.u1;
+    if(sd.axis === 'z'){ if(c.u0 <= sd.u0 + .001) e0 -= bt; if(c.u1 >= sd.u1 - .001) e1 += bt; }
+    const yMaxAll = Math.min(yCap, Math.max(topFn(e0), topFn(e1)));
+    for(let ya = y0; ya < yMaxAll - .004; ya += bw){
+      const yb = Math.min(ya + bw, yMaxAll);
+      /* povolené úseky: odečíst bloky, které řadu protínají */
+      let segs = [[e0, e1]];
+      blocks.forEach(([bu0, bu1, by0, by1]) => {
+        if(by1 <= ya || by0 >= yb) return;
+        const cut = [];
+        segs.forEach(([a, b]) => {
+          if(bu1 <= a || bu0 >= b){ cut.push([a, b]); return; }
+          if(bu0 > a) cut.push([a, bu0]); if(bu1 < b) cut.push([bu1, b]);
+        });
+        segs = cut;
+      });
+      /* v úsecích, kde řadu protíná blok jen horní částí, se deska zkrátí na výšku bloku */
+      segs.forEach(([a, b]) => {
+        if(b - a < .01) return;
+        /* horní hrana = min(yb, topFn(u)); topFn je v úseku lineární */
+        const ta = topFn(a), tb = topFn(b);
+        let pa = a, pb = b;
+        const lin = u => ta + (tb - ta)*(u - a)/(b - a);
+        const need = ya + .01;
+        if(ta < need && tb < need) return;
+        if(ta < need) pa = a + (need - ta)/(tb - ta)*(b - a);
+        if(tb < need) pb = a + (need - ta)/(tb - ta)*(b - a);
+        /* bloky pod horní hranou řady — kus desky pod blokem (např. pod pozednicí) */
+        const pts = [[pa, ya], [pb, ya]];
+        const top = u => Math.min(yb, lin(u));
+        const uc = (Math.abs(tb - ta) > 1e-9) ? a + (yb - ta)/(tb - ta)*(b - a) : null;
+        pts.push([pb, top(pb)]);
+        if(uc !== null && uc > pa + 1e-4 && uc < pb - 1e-4) pts.push([uc, yb]);
+        pts.push([pa, top(pa)]);
+        let A = 0; for(let i = 0; i < pts.length; i++){ const [x1, y1] = pts[i], [x2, y2] = pts[(i+1) % pts.length]; A += x1*y2 - x2*y1; }
+        A = Math.abs(A)/2; if(A < 1e-4) return;
+        area += A;
+        P.push({k:'cladPoly', side:s, pts, grp:'clad'});
+      });
+      /* kousky mezi blokem a střechou (nad pozednicí u boku) */
+      blocks.forEach(([bu0, bu1, by0, by1]) => {
+        if(sd.axis !== 'x') return;
+        if(by1 <= ya || by1 >= yb) return;                // řada musí končit nad blokem
+        const a = Math.max(bu0, e0), b = Math.min(bu1, e1); if(b - a < .01) return;
+        const ta = Math.min(yb, topFn(a)), tb = Math.min(yb, topFn(b));
+        if(Math.min(ta, tb) < by1 + .01) return;
+        const pts = [[a, by1], [b, by1], [b, tb], [a, ta]];
+        const A = (b - a)*((ta + tb)/2 - by1); area += A;
+        P.push({k:'cladPoly', side:s, pts, grp:'clad'});
+      });
+    }
+    g.cladBySide[s] = area; g.cladArea += area;
+  });
+
+  /* ── podlaha ── */
+  g.floorArea = 0; g.floorFoots = [];
+  if(cfg.floor){
+    const b = K.floorBeam, off = (K.post + b)/2;
+    const foots = [...(wall ? [] : xs.map(x => ({x, z:zF}))), ...xs.map(x => ({x, z:zB})), ...g.extra.map(e => ({x:e.x, z:e.z}))];
+    const posun = x => { const px = foots.map(f => f.x).find(o => Math.abs(x - o) < off - .002);
+      if(px === undefined) return x; return px > .001 ? px - off : px < -.001 ? px + off : off; };
+    let bx = [];
+    for(let i = 0; i < xs.length; i++){ bx.push(xs[i]); if(i + 1 < xs.length) bx.push((xs[i] + xs[i+1])/2); }
+    bx = bx.map(posun).sort((a, c) => a - c).filter((v, i, a) => i === 0 || v - a[i-1] > .01);
+    const z0 = -D/2 - K.post/2, z1 = D/2 + K.post/2;
+    const fx0 = Math.min(xs[0] - K.post/2, bx[0] - b/2), fx1 = Math.max(xs[xs.length-1] + K.post/2, bx[bx.length-1] + b/2);
+    [-D/2, 0, D/2].forEach(z => bx.forEach(x => {
+      const sd = foots.find(q => Math.abs(q.z - z) < .01 && Math.abs(q.x - x) < off + .03);
+      g.floorFoots.push({x, z, sdil:!!sd});
+      P.push({k:'foot', x, z, a:b, grp:'floor'});
+    }));
+    bx.forEach(x => box(b, b, z1 - z0, x, K.footH + b/2, (z0 + z1)/2, 'floorBeam', {grain:'z', grp:'floor', kvh:true}));
+    const bw = K.floorBoardW, bt = K.floorBoardT, gp = K.floorGap, yB = K.footH + b + bt/2, rP = K.post/2 + K.floorPostGap;
+    for(let z = z0; z < z1 - .005; z += bw + gp){
+      const w = Math.min(bw, z1 - z); if(w < .02) break;
+      const zc = z + w/2;
+      const cuts = foots.filter(sl => Math.abs(zc - sl.z) < rP + w/2).map(sl => [sl.x - rP, sl.x + rP]).sort((a, c) => a[0] - c[0]);
+      let xa = fx0; const segs = [];
+      cuts.forEach(([c0, c1]) => { if(c1 <= xa) return; if(c0 > xa) segs.push([xa, Math.min(c0, fx1)]); xa = Math.max(xa, c1); });
+      if(xa < fx1) segs.push([xa, fx1]);
+      segs.forEach(([sa, sb]) => { if(sb - sa < .03) return;
+        box(sb - sa, bt, w, (sa + sb)/2, yB, zc, 'floor', {grain:'x', grp:'floor'}); g.floorArea += (sb - sa)*w; });
+    }
+  }
+  return g;
+}
+
+/* ═══════════════ CENA — logika computeBill() z pergola-3d.html + nové položky ═══════════════ */
+function osbRadaCalc(x0, x1, BL, axes, row){      // převzato z pergola-3d.html
+  const MIN = 0.30, joints = [];
+  let xa = x0, want = (row % 2) ? BL/2 : BL;
+  while(x1 - xa > BL + 1e-9 || (joints.length === 0 && want < BL)){
+    let xb = Math.min(xa + want, x1); want = BL;
+    const cand = axes.filter(ax => ax > xa + MIN && ax <= xb + 1e-9);
+    if(!cand.length) break;
+    xb = cand[cand.length-1];
+    if(x1 - xb < MIN){ const back = axes.filter(ax => ax > xa + MIN && ax <= x1 - MIN); if(!back.length) break; xb = back[back.length-1]; }
+    if(xb <= xa + 1e-9) break;
+    joints.push(xb); xa = xb;
+  }
+  const pts = [x0, ...joints, x1], out = [];
+  for(let i = 0; i + 1 < pts.length; i++) if(pts[i+1] - pts[i] > 0.012) out.push([pts[i], pts[i+1]]);
+  return out;
+}
+/* Cena řeziva: každý hranol se přepočítá na m³ (šířka × výška × délka + prořez) × sazba Kč/m³.
+   Jen když je v ceníku vyplněná cena za bm pro daný profil, použije se ta. */
+function priceBm(w, h){
+  const v = CENIK.bm[`${Math.round(w*1000)}x${Math.round(h*1000)}`];
+  return typeof v === 'number' ? v : w*h*CENIK.m3;     // Kč/bm = průřez [m²] × Kč/m³
+}
+function bill(g){
+  const c = CENIK, groups = {konstr:0, clad:0, floor:0}, legacy = !!g.cfg.legacy;
+  const tw = c.prorez/100;
+  let timberCost = 0, paint = 0, impOnly = 0, cladPaint = 0, cladTim = 0;
+  g.timber.forEach(t => {
+    const cost = t.len*(1 + tw)*priceBm(t.w, t.h);
+    timberCost += cost; groups[t.grp] += cost;
+    const a = 2*(t.w + t.h)*t.len + 2*t.w*t.h;
+    if(t.noPaint) impOnly += a; else paint += a;
+    if(t.grp === 'clad'){ cladPaint += a; cladTim += cost; }
+  });
+  const area = g.deckArea;
+  /* patky jde vypnout (zákazník vybetonuje sám podle výkresu) — jako „Patka“ v ceníku nástroje:
+     vypnuto = žádné patky ani třmeny, ani pod stojinami obložení a podlahou */
+  const pk = g.cfg.patky === false ? 0 : 1;
+  let kon = (g.deck === 'osb' ? g.osbN*g.osbBoardArea*c.osb : area*c.palubky) + area*c.plech
+          + (2*(g.L + .06) + 2*g.rl)*c.oplechovani
+          + ((g.wDeck + .06) + K.svodL)*c.zlab
+          + pk*(g.wall ? 1 : 2)*g.nPosts*c.patka;
+  if(g.wall) kon += (g.nKotev || 0)*c.kotvaZed;
+  const nat = g.cfg.nater || {pergola:true, clad:true, floor:true};
+  groups.clad += g.cladArea*(c.obklad - (nat.clad ? 0 : c.obkladNater)) + pk*g.extra.length*c.patka;
+  if(g.cfg.floor){
+    const nove = g.floorFoots.filter(f => !f.sdil).length, sdil = g.floorFoots.length - nove;
+    groups.floor += g.floorArea*(c.podlaha - (nat.floor ? 0 : c.podlahaNater)) + pk*(nove*c.patka + sdil*c.trmen);
+  }
+  /* nátěr jde vypnout zvlášť pro pergolu, obložení a podlahu; impregnace zůstává vždy */
+  const nP = nat.pergola ? c.nater : 0, nO = nat.clad ? c.nater : 0;
+  kon += (paint - cladPaint + (g.deck === 'osb' ? 0 : 2*area))*(c.impregnace + nP) + impOnly*c.impregnace + (timberCost - cladTim)*c.spoj/100;
+  kon += area*c.montaz + c.doprava + c.praceFix;
+  groups.clad += cladPaint*(c.impregnace + nO) + cladTim*c.spoj/100;
+  groups.konstr += kon;
+  const m = 1 + c.marze/100;
+  Object.keys(groups).forEach(k => groups[k] *= m);
+  return {groups, total: groups.konstr + groups.clad + groups.floor};
+}
+
+/* ═══════════════ 3D SCÉNA ═══════════════ */
+const $ = id => document.getElementById(id);
+const BARVY = [
+  {id:'teak',     name:'Teak',                        c:'#b0703a', sw:'#b87a40'},
+  {id:'orech',    name:'Ořech',                       c:'#7e4f2c', sw:'#855530'},
+  {id:'palisandr',name:'Palisandr',                   c:'#553322', sw:'#5a3624'},
+  {id:'antracit', name:'Antracit',                    c:'#5a5e60', sw:'#4a4e50'}
+];
+const STRANY = [   // strany půdorysu při pohledu zepředu; okap je standardně vzadu (jako v pergola-3d.html)
+  {s:'F', name:'Přední'},
+  {s:'B', name:'Zadní'},
+  {s:'R', name:'Levá'},     // +x — při pohledu zepředu vlevo
+  {s:'L', name:'Pravá'}
+];
+const state = {W:3, D:3, okap:'B', svod:'R', wall:false, clad:{}, floor:false, color:'teak', roof:'7016', slope:5, nater:{pergola:false, clad:false, floor:false}, deck:'osb', patky:true};
+
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, preserveDrawingBuffer:false});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 400);
+
+/* obloha — gradient + záře slunce, zároveň zdroj odlesků (PMREM) */
+const SUN_DIR = new THREE.Vector3(-0.5, 0.62, -0.6).normalize();
+function skyMaterial(){
+  return new THREE.ShaderMaterial({
+    side:THREE.BackSide, depthWrite:false,
+    uniforms:{top:{value:new THREE.Color('#4f86c2')}, mid:{value:new THREE.Color('#a9c6df')},
+              hor:{value:new THREE.Color('#e9eef0')}, bot:{value:new THREE.Color('#8d9a7c')}, sun:{value:SUN_DIR}},
+    vertexShader:'varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+    fragmentShader:`uniform vec3 top,mid,hor,bot,sun; varying vec3 vD;
+      void main(){ float h = vD.y; vec3 c;
+        if(h > 0.0){ c = mix(hor, mid, smoothstep(0.0, 0.18, h)); c = mix(c, top, smoothstep(0.18, 0.85, h)); }
+        else c = mix(hor, bot, smoothstep(0.0, 0.08, -h));
+        float s = max(dot(normalize(vD), sun), 0.0);
+        c += vec3(1.0,0.93,0.8) * (pow(s, 600.0)*2.5 + pow(s, 12.0)*0.18);
+        gl_FragColor = vec4(c, 1.0); }`
+  });
+}
+const sky = new THREE.Mesh(new THREE.SphereGeometry(180, 48, 24), skyMaterial());
+scene.add(sky);
+{
+  /* odlesky z panoramatu malovaného na canvas (spolehlivější než fromScene na slabších GPU) */
+  const c = document.createElement('canvas'); c.width = 512; c.height = 256;
+  const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, 0, 256);
+  gr.addColorStop(0, '#4f86c2'); gr.addColorStop(0.32, '#a9c6df'); gr.addColorStop(0.5, '#e9eef0');
+  gr.addColorStop(0.53, '#8d9a7c'); gr.addColorStop(1, '#4f5a3e');
+  g.fillStyle = gr; g.fillRect(0, 0, 512, 256);
+  const sx = (Math.atan2(SUN_DIR.x, SUN_DIR.z)/(2*Math.PI) + 0.5)*512, sy = (0.5 - Math.asin(SUN_DIR.y)/Math.PI)*256;
+  const rg = g.createRadialGradient(sx, sy, 0, sx, sy, 60);
+  rg.addColorStop(0, 'rgba(255,248,230,1)'); rg.addColorStop(0.15, 'rgba(255,240,210,.6)'); rg.addColorStop(1, 'rgba(255,240,210,0)');
+  g.fillStyle = rg; g.fillRect(0, 0, 512, 256);
+  const t = new THREE.CanvasTexture(c);
+  t.mapping = THREE.EquirectangularReflectionMapping; t.encoding = THREE.sRGBEncoding;
+  const pm = new THREE.PMREMGenerator(renderer);
+  scene.environment = pm.fromEquirectangular(t).texture;
+  pm.dispose(); t.dispose();
+}
+scene.fog = new THREE.Fog(0xdfe8ec, 30, 150);
+
+const hemi = new THREE.HemisphereLight(0xdfeaf5, 0x4d5238, 0.4);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff0dc, 1.4);
+sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096);
+sun.shadow.bias = -0.00025;
+sun.shadow.normalBias = 0.02;
+sun.shadow.radius = 3;
+scene.add(sun, sun.target);
+
+/* ── procedurální textury ── */
+function rnd(seed){ let s = seed >>> 0; return () => ((s = (s*1664525 + 1013904223) >>> 0)/4294967296); }
+/* KVH smrk, hoblovaný: světlý slámový tón, jemné rovné letokruhy, místy „plamínek“,
+   drobné suky a zubovitý spoj (KVH se na délku napojuje). 1 textura = 0,28 m × 3,0 m. */
+function woodCanvas(seed){
+  const R = rnd(seed), W = 512, H = 2048;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  const piece = (y0, y1, tone) => {
+    g.save(); g.beginPath(); g.rect(0, y0, W, y1 - y0); g.clip();
+    g.fillStyle = tone; g.fillRect(0, y0, W, y1 - y0);
+    /* letokruhy: světlé jarní + užší tmavší letní dřevo, téměř rovnoběžné */
+    let x = -20;
+    const drift = (R() - 0.5)*0.02, wob = 2 + R()*4, ph = R()*6;
+    while(x < W + 20){
+      const ring = 5 + R()*9, late = 1.2 + R()*1.8;
+      g.strokeStyle = `rgba(${165 + R()*14|0},${112 + R()*14|0},${58 + R()*12|0},${0.24 + R()*0.24})`;
+      g.lineWidth = late; g.beginPath();
+      for(let y = y0 - 10; y <= y1 + 10; y += 32){
+        const xx = x + (y - y0)*drift + Math.sin(y*0.0023 + ph + x*0.01)*wob;
+        y === y0 - 10 ? g.moveTo(xx, y) : g.lineTo(xx, y);
+      }
+      g.stroke(); x += ring;
+    }
+    /* plamínek (tečný řez) — vnořené protáhlé oblouky */
+    if(R() < 0.75){
+      const cx = W*(0.25 + R()*0.5), cy = y0 + (y1 - y0)*(0.25 + R()*0.5), n = 5 + (R()*5|0);
+      for(let k = 1; k <= n; k++){
+        g.strokeStyle = `rgba(170,120,65,${0.16 + R()*0.12})`; g.lineWidth = 1.3 + R()*1.2;
+        const w = 6 + k*11, hh = 120 + k*70;
+        g.beginPath(); g.moveTo(cx - w, cy + hh);
+        g.bezierCurveTo(cx - w*0.9, cy - hh*0.15, cx + w*0.9, cy - hh*0.15, cx + w, cy + hh); g.stroke();
+      }
+    }
+    /* suky — malé, zdravé, tmavší se světlým lemem */
+    const nk = R() < 0.6 ? 1 : 2;
+    for(let i = 0; i < nk; i++){
+      const kx = 40 + R()*(W - 80), ky = y0 + 60 + R()*Math.max(1, y1 - y0 - 120), s = 5 + R()*8;
+      const gr = g.createRadialGradient(kx, ky, 0, kx, ky, s*2.4);
+      gr.addColorStop(0, 'rgba(120,72,30,.85)'); gr.addColorStop(.45, 'rgba(150,95,45,.55)'); gr.addColorStop(1, 'rgba(180,130,70,0)');
+      g.fillStyle = gr; g.beginPath(); g.ellipse(kx, ky, s*1.6, s*2.4, 0, 0, Math.PI*2); g.fill();
+      g.strokeStyle = 'rgba(110,65,28,.5)'; g.lineWidth = 1; g.beginPath(); g.ellipse(kx, ky, s*0.8, s*1.2, 0, 0, Math.PI*2); g.stroke();
+    }
+    /* jemná vlákna hoblovaného povrchu */
+    g.globalAlpha = 0.05;
+    for(let i = 0; i < 9000; i++){ g.fillStyle = R() < 0.6 ? '#9a7040' : '#ffffff'; g.fillRect(R()*W, y0 + R()*(y1 - y0), 1, 4 + R()*14); }
+    g.globalAlpha = 1; g.restore();
+  };
+  const tones = ['#dcbd84', '#d6b67b', '#e0c38f', '#d2b077'];
+  const yj = 700 + R()*800;                                 // zubovitý spoj — jeden na 3 m
+  piece(0, yj, tones[seed % 4]); piece(yj, H, tones[(seed + 2) % 4]);
+  /* zubovitý spoj: zuby ~20 mm dlouhé, rozteč ~6 mm */
+  g.strokeStyle = 'rgba(120,85,45,.55)'; g.lineWidth = 1.2; g.beginPath();
+  for(let x = 0, up = true; x <= W; x += 5.5, up = !up) (x === 0 ? g.moveTo(x, yj) : g.lineTo(x, yj + (up ? -7 : 7)));
+  g.stroke();
+  return c;
+}
+function endGrainCanvas(seed){
+  const R = rnd(seed), N = 256, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d');
+  g.fillStyle = '#d7b98a'; g.fillRect(0, 0, N, N);
+  const cx = -N*0.3 + R()*N*0.2, cy = N*(0.3 + R()*0.4);
+  for(let r = 4; r < N*1.8; r += 5 + R()*6){
+    g.strokeStyle = `rgba(150,105,55,${0.35 + R()*0.25})`; g.lineWidth = 1.2 + R();
+    g.beginPath(); g.arc(cx, cy, r, 0, Math.PI*2); g.stroke();
+  }
+  return c;
+}
+function texFrom(canvasEl, srgb){
+  const t = new THREE.CanvasTexture(canvasEl);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  if(srgb) t.encoding = THREE.sRGBEncoding;
+  return t;
+}
+const woodTex = [texFrom(woodCanvas(11), true), texFrom(woodCanvas(29), true), texFrom(woodCanvas(47), true)];
+const endTex = texFrom(endGrainCanvas(5), true);
+const endMat = new THREE.MeshStandardMaterial({map:endTex, roughness:0.85, envMapIntensity:0.3});
+const WOOD_TYPES = {       // jemné rozdíly odstínu mezi prvky jako u skutečného řeziva
+  post:[0.97, 0], plate:[0.95, 1], vaz:[0.96, 2], raft:[1.0, 1], deck:[1.03, 0],
+  clad:[1.02, 2], floor:[0.98, 1], floorBeam:[0.9, 0], brace:[0.95, 2], lat:[0.92, 1]
+};
+const woodMats = {};
+const NENATRENO = '#ffffff';     // jen impregnace — vlastní barva KVH z textury
+const MAT_SKUPINA = {clad:'clad', floor:'floor', floorBeam:'floor'};   // ostatní prvky = pergola
+function buildWoodMats(){
+  const painted = new THREE.Color(BARVY.find(b => b.id === state.color).c), raw = new THREE.Color(NENATRENO);
+  Object.entries(WOOD_TYPES).forEach(([k, [f, ti]]) => {
+    const base = state.nater[MAT_SKUPINA[k] || 'pergola'] ? painted : raw;
+    woodMats[k] = [0, 1, 2].map(v => {
+      const m = woodMats[k] && woodMats[k][v] ? woodMats[k][v]
+        : new THREE.MeshStandardMaterial({map:woodTex[(ti + v) % 3], bumpMap:woodTex[(ti + v) % 3], bumpScale:0.0006,
+                                         roughness:0.62, metalness:0, envMapIntensity:0.4});
+      const c = base.clone().convertSRGBToLinear();
+      const j = [1, 0.95, 1.05][v]*f;
+      m.color.setRGB(Math.min(1, c.r*j), Math.min(1, c.g*j), Math.min(1, c.b*j));
+      m.color.convertLinearToSRGB();
+      return m;
+    });
+  });
+}
+buildWoodMats();
+
+function grassCanvas(){
+  const N = 512, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d'), R = rnd(7);
+  g.fillStyle = '#5f7d3c'; g.fillRect(0, 0, N, N);
+  for(let i = 0; i < 26000; i++){
+    const x = R()*N, y = R()*N, l = 2 + R()*5;
+    const t = R();
+    g.strokeStyle = t < 0.33 ? '#4d6b30' : t < 0.66 ? '#789650' : '#6a8a42';
+    g.globalAlpha = 0.35 + R()*0.4; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + (R() - 0.5)*2, y - l); g.stroke();
+  }
+  g.globalAlpha = 1;
+  return c;
+}
+const grassTex = texFrom(grassCanvas(), true); grassTex.repeat.set(90, 90);
+const concreteMat = new THREE.MeshStandardMaterial({color:0xb9b6ae, roughness:0.95});
+const steelMat = new THREE.MeshStandardMaterial({color:0x9aa2a8, roughness:0.35, metalness:0.85});
+const plechMat = new THREE.MeshStandardMaterial({color:0x262a2d, roughness:0.55, metalness:0.15, side:THREE.DoubleSide, envMapIntensity:0.25});
+const gutterMat = new THREE.MeshStandardMaterial({color:0x2a2c2e, roughness:0.75, metalness:0, side:THREE.DoubleSide, envMapIntensity:0.08});  // plastový žlab a svod
+function osbCanvas(){
+  const N = 512, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d'), R = rnd(9);
+  g.fillStyle = '#c4a473'; g.fillRect(0, 0, N, N);
+  for(let i = 0; i < 1400; i++){
+    g.save(); g.translate(R()*N, R()*N); g.rotate(R()*Math.PI);
+    g.fillStyle = ['#a88650','#d3b784','#957340','#dcc08e'][i % 4]; g.globalAlpha = .35 + R()*.35;
+    g.fillRect(-14 - R()*20, -3, 28 + R()*40, 5 + R()*4); g.restore();
+  }
+  return c;
+}
+const osbTex = texFrom(osbCanvas(), true); osbTex.repeat.set(1.2, 1.2);
+const osbMat = new THREE.MeshStandardMaterial({map:osbTex, roughness:0.9, envMapIntensity:0.3});
+function plasterCanvas(){
+  const N = 512, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d'), R = rnd(5);
+  g.fillStyle = '#e9e5de'; g.fillRect(0, 0, N, N);
+  for(let i = 0; i < 30000; i++){ const v = 200 + R()*55 | 0; g.fillStyle = `rgba(${v},${v - 3},${v - 8},0.35)`; g.fillRect(R()*N, R()*N, 1.5, 1.5); }
+  return c;
+}
+const plasterTex = texFrom(plasterCanvas(), true); plasterTex.repeat.set(4, 2);
+const wallMat = new THREE.MeshStandardMaterial({map:plasterTex, bumpMap:plasterTex, bumpScale:0.004, roughness:0.95, envMapIntensity:0.3});
+const soklMat = new THREE.MeshStandardMaterial({color:0x8b8a86, roughness:0.9});
+
+const BARVY_STRECHY = [      // odstíny trapézových plechů (RAL); barva se převádí do lineárního prostoru, aby nebyla vybledlá
+  {id:'7035', name:'Světle šedá RAL 7035', c:'#c5c7c4'},
+  {id:'7016', name:'Antracit RAL 7016', c:'#293133'},
+  {id:'6005', name:'Zelená RAL 6005', c:'#114232'},
+  {id:'8019', name:'Tmavě hnědá RAL 8019', c:'#3d3635'},
+  {id:'8004', name:'Cihlově červená RAL 8004', c:'#8e402a'}
+];
+function applyRoofColor(){ plechMat.color.set(BARVY_STRECHY.find(b => b.id === state.roof).c).convertSRGBToLinear(); }
+
+/* ── zem a zahrada ── */
+const env = new THREE.Group(); scene.add(env);
+{
+  const gg = new THREE.PlaneGeometry(260, 260, 80, 80);
+  const cols = [], R = rnd(3), pos = gg.attributes.position;
+  for(let i = 0; i < pos.count; i++){
+    const x = pos.getX(i), y = pos.getY(i);
+    const n = 0.9 + 0.1*Math.sin(x*0.13)*Math.cos(y*0.11) + (R() - 0.5)*0.08;
+    cols.push(n, n*1.01, n*0.97);
+  }
+  gg.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  const ground = new THREE.Mesh(gg, new THREE.MeshStandardMaterial({map:grassTex, vertexColors:true, roughness:1, envMapIntensity:0.2}));
+  ground.rotation.x = -Math.PI/2; ground.receiveShadow = true;
+  env.add(ground);
+  const leafTex = (() => {
+    const N = 512, c = document.createElement('canvas'); c.width = c.height = N;
+    const g = c.getContext('2d'), R = rnd(21);
+    g.fillStyle = '#808080'; g.fillRect(0, 0, N, N);
+    for(let i = 0; i < 5200; i++){
+      const x = R()*N, y = R()*N, r = 3 + R()*9, v = 60 + R()*150 | 0;
+      g.fillStyle = `rgb(${v},${v},${v})`; g.globalAlpha = 0.5;
+      g.beginPath(); g.ellipse(x, y, r, r*0.55, R()*3.14, 0, Math.PI*2); g.fill();
+    }
+    g.globalAlpha = 1;
+    const t = texFrom(c, false); t.repeat.set(6, 4); return t;
+  })();
+  const leafMats = ['#3f6a2c', '#4a7732', '#365e26', '#557f38'].map(c => new THREE.MeshStandardMaterial({color:c, map:leafTex, bumpMap:leafTex, bumpScale:0.015, roughness:0.95, envMapIntensity:0.25}));
+  const trunkMat = new THREE.MeshStandardMaterial({color:0x5c4531, roughness:1});
+  const blob = (r, R2) => {
+    const g2 = new THREE.SphereGeometry(r, 28, 18), p = g2.attributes.position;
+    const a = R2()*10, b = R2()*10;
+    for(let i = 0; i < p.count; i++){        // posun podle polohy — sdílené vrcholy se pohnou stejně, bez trhlin
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+      const k = 1 + 0.10*Math.sin(x*2.3/r + a)*Math.sin(y*2.1/r + b) + 0.05*Math.sin(z*5.3/r + a*b);
+      p.setXYZ(i, x*k, y*k, z*k);
+    }
+    g2.computeVertexNormals(); return g2;
+  };
+  const tree = (x, z, s, seed) => {
+    const R2 = rnd(seed), t = new THREE.Group();
+    const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.12*s, 0.2*s, 2.6*s, 8), trunkMat);
+    tr.position.y = 1.3*s; tr.castShadow = true; t.add(tr);
+    for(let i = 0; i < 6; i++){
+      const m = new THREE.Mesh(blob((0.9 + R2()*0.6)*s, R2), leafMats[i % 4]);
+      m.position.set((R2() - 0.5)*1.6*s, (2.8 + R2()*1.6)*s, (R2() - 0.5)*1.6*s);
+      m.castShadow = true; m.receiveShadow = true; t.add(m);
+    }
+    t.position.set(x, 0, z); env.add(t);
+  };
+  const bush = (x, z, s, seed) => {
+    const R2 = rnd(seed);
+    for(let i = 0; i < 3; i++){
+      const m = new THREE.Mesh(blob((0.45 + R2()*0.3)*s, R2), leafMats[(i + seed) % 4]);
+      m.position.set(x + (R2() - 0.5)*0.9*s, 0.35*s + R2()*0.2, z + (R2() - 0.5)*0.9*s);
+      m.scale.y = 0.8; m.castShadow = m.receiveShadow = true; env.add(m);
+    }
+  };
+  /* živý plot vzadu */
+  for(let i = -14; i <= 14; i++){
+    const R2 = rnd(100 + i);
+    const m = new THREE.Mesh(blob(0.95 + R2()*0.25, R2), leafMats[(i + 20) % 4]);
+    m.position.set(i*1.25, 0.95, 14 + R2()*0.4); m.scale.set(1, 1.2, 0.8);
+    m.castShadow = m.receiveShadow = true; env.add(m);
+  }
+  tree(-11, 10, 1.25, 1); tree(12, 9, 1.1, 2); tree(-16, -4, 1.35, 3); tree(18, -9, 1.2, 4); tree(4, 19, 1.4, 5);
+  tree(-6, 20, 1.1, 6); tree(22, 5, 1.3, 7);
+  bush(-8.5, 7, 1.1, 11); bush(9, 6.5, 1, 12); bush(-10, -7, 0.9, 13); bush(11, -8, 1.2, 14);
+}
+
+/* ── stavební prvky ── */
+function woodBox(w, h, d, grain, mat, seed){
+  const g = new THREE.BoxGeometry(w, h, d);
+  const pos = g.attributes.position, nor = g.attributes.normal, uv = g.attributes.uv;
+  const ax = {x:0, y:1, z:2}[grain || 'x'];
+  const R = rnd(seed || 1), ou = R()*5, ov = R()*5;
+  for(let i = 0; i < pos.count; i++){
+    const p = [pos.getX(i), pos.getY(i), pos.getZ(i)];
+    const n = [Math.abs(nor.getX(i)), Math.abs(nor.getY(i)), Math.abs(nor.getZ(i))];
+    const na = n[0] > .5 ? 0 : n[1] > .5 ? 1 : 2;
+    const inPlane = [0, 1, 2].filter(a => a !== na);
+    if(na === ax) uv.setXY(i, p[inPlane[0]]/0.06 + ou, p[inPlane[1]]/0.06 + ov);
+    else { const o = inPlane.find(a => a !== ax); uv.setXY(i, p[o]/0.28 + ou, p[ax]/3.0 + ov); }
+  }
+  const m = new THREE.Mesh(g, mat); m.castShadow = m.receiveShadow = true;
+  return m;
+}
+/* KVH hranol: sražené hrany (fáze 4 mm) — světlo na hranách dělá z kvádru trám */
+function kvhGeometry(a, b, len, seed){
+  const c = Math.min(0.004, a/6, b/6), ha = a/2, hb = b/2;
+  const sec = [[-ha + c, -hb], [ha - c, -hb], [ha, -hb + c], [ha, hb - c], [ha - c, hb], [-ha + c, hb], [-ha, hb - c], [-ha, -hb + c]];
+  const R = rnd(seed || 1), ou = R()*5, ov = R()*5;
+  const P = [], N = [], U = [], I = [];
+  let per = 0; const z0 = -len/2, z1 = len/2;
+  for(let i = 0; i < 8; i++){
+    const [x1, y1] = sec[i], [x2, y2] = sec[(i + 1) % 8];
+    const el = Math.hypot(x2 - x1, y2 - y1), nx = (y2 - y1)/el, ny = -(x2 - x1)/el;
+    const bI = P.length/3;
+    [[x1, y1, z0, per], [x2, y2, z0, per + el], [x2, y2, z1, per + el], [x1, y1, z1, per]].forEach(([x, y, z, pp]) => {
+      P.push(x, y, z); N.push(nx, ny, 0); U.push(pp/0.28 + ou, z/3.0 + ov);
+    });
+    I.push(bI, bI + 1, bI + 2, bI, bI + 2, bI + 3);   // vinutí proti směru hodin zvenku — jinak se stěny odříznou a trám je „průhledný“
+    per += el;
+  }
+  const nSide = I.length;
+  [[z0, -1], [z1, 1]].forEach(([z, s]) => {
+    const bI = P.length/3;
+    sec.forEach(([x, y]) => { P.push(x, y, z); N.push(0, 0, s); U.push(x/0.25 + ou*0.1, y/0.25 + ov*0.1); });
+    for(let i = 1; i < 7; i++){ if(s > 0) I.push(bI, bI + i, bI + i + 1); else I.push(bI, bI + i + 1, bI + i); }
+  });
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(N, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(U, 2));
+  g.setIndex(I);
+  g.addGroup(0, nSide, 0); g.addGroup(nSide, I.length - nSide, 1);
+  return g;
+}
+/* Prvky stejné šířky (sloup 120, pozednice 120, vaznice 120, vzpěra 120) mají boční plochy
+   v jedné rovině a grafika je nedokáže rozlišit — problikávají. Pro zobrazení se proto
+   pozednice rozšíří o 1,5 mm na stranu a vaznice zúží o 2 mm na stranu. Rozměry pro výrobu
+   a cenu se nemění (počítají se z engine.js). */
+const VIS_ROZ = {plate:0.003, vaz:-0.004, raft:-0.002};   // krokev o 1 mm na stranu užší — krajní krokev lícuje s čelem pozednice
+function kvhMesh(p, mat, seed){
+  let g; const d = VIS_ROZ[p.mat] || 0;
+  const dh = p.mat === 'vaz' ? -0.004 : 0;           // vaznice o 2 mm nižší nahoře i dole — nelícuje s pozednicí
+  if(p.grain === 'z'){ g = kvhGeometry(p.w + d, p.h + dh, p.d, seed); }
+  else if(p.grain === 'x'){ g = kvhGeometry(p.d + d, p.h, p.w, seed); g.rotateY(Math.PI/2); }
+  else { g = kvhGeometry(p.w + d, p.d + d, p.h, seed); g.rotateX(-Math.PI/2); }
+  const m = new THREE.Mesh(g, [mat, endMat]); m.castShadow = m.receiveShadow = true;
+  return m;
+}
+function braceMesh(mir, mat){
+  const s = K.braceT*Math.SQRT2, d = Math.max(K.braceD, s + 0.05), m2 = mir ? -1 : 1;
+  const sh = new THREE.Shape();
+  sh.moveTo(0, -d); sh.lineTo(m2*d, 0); sh.lineTo(m2*(d - s), 0); sh.lineTo(0, -(d - s)); sh.closePath();
+  const bt = K.braceT - 0.012;                       // vzpěra v zobrazení o 3+3 mm užší (bevel 3 mm) — neleží v rovině sloupu
+  const g = new THREE.ExtrudeGeometry(sh, {depth:bt, bevelEnabled:true, bevelThickness:0.003, bevelSize:0.003, bevelSegments:1});
+  g.translate(0, 0, -bt/2);
+  const pos = g.attributes.position, uv = g.attributes.uv;
+  for(let i = 0; i < pos.count; i++){
+    const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+    uv.setXY(i, ((m2*x + y)/Math.SQRT2 + z)/0.28, ((m2*x - y)/Math.SQRT2)/3.0);
+  }
+  const m = new THREE.Mesh(g, mat); m.castShadow = m.receiveShadow = true;
+  return m;
+}
+/* deska obložení — mnohoúhelník v rovině strany, vytažený na tloušťku palubky */
+function cladPolyMesh(G, p, mat){
+  const sd = G.sides[p.side], bt = K.cladBt;
+  const sh = new THREE.Shape(); p.pts.forEach(([u, y], i) => i ? sh.lineTo(u, y) : sh.moveTo(u, y)); sh.closePath();
+  const g = new THREE.ExtrudeGeometry(sh, {depth:bt, bevelEnabled:false});
+  const pos = g.attributes.position, uv = g.attributes.uv, off = Math.random()*5;
+  for(let i = 0; i < pos.count; i++) uv.setXY(i, (pos.getY(i) + pos.getZ(i))/0.28 + off, pos.getX(i)/3.0);
+  const m = new THREE.Mesh(g, mat); m.castShadow = m.receiveShadow = true;
+  /* 2 mm od líce sloupů a trámů — jinak jsou plochy v jedné rovině a v náhledu problikávají */
+  const gap = 0.002*sd.dir;
+  if(sd.axis === 'z'){ m.position.z = (sd.dir > 0 ? sd.plane : sd.plane - bt) + gap; }
+  else { m.rotation.y = -Math.PI/2; m.position.x = (sd.dir > 0 ? sd.plane + bt : sd.plane) + gap; }
+  return m;
+}
+function footMesh(a){
+  const g = new THREE.Group();
+  const conc = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.06, 0.28), concreteMat);
+  conc.position.y = -0.024; conc.receiveShadow = true; g.add(conc);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(a + 0.02, 0.006, a + 0.02), steelMat);
+  base.position.y = 0.009; base.castShadow = true; g.add(base);
+  [-1, 1].forEach(s => {
+    const wing = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.14, a + 0.02), steelMat);
+    wing.position.set(s*(a/2 + 0.0025), 0.076, 0); wing.castShadow = true; g.add(wing);
+  });
+  return g;
+}
+function roofMeshes(G, out){
+  const cosA = G.cosA, ang = G.ang, wR = G.wDeck + 0.02, len = G.rl + 0.06;
+  const pitch = 0.19, hRib = 0.035, t = 0.0012;
+  const tp = [[0, 0]]; let xr = 0;
+  while(xr < wR){
+    tp.push([Math.min(xr + 0.10, wR), 0]); if(xr + 0.10 >= wR) break;
+    tp.push([Math.min(xr + 0.125, wR), hRib]); tp.push([Math.min(xr + 0.165, wR), hRib]);
+    tp.push([Math.min(xr + pitch, wR), 0]); xr += pitch;
+  }
+  const sh = new THREE.Shape(); sh.moveTo(tp[0][0], tp[0][1]);
+  for(let k = 1; k < tp.length; k++) sh.lineTo(tp[k][0], tp[k][1]);
+  for(let k = tp.length - 1; k >= 0; k--) sh.lineTo(tp[k][0], tp[k][1] - t);
+  sh.closePath();
+  const g = new THREE.ExtrudeGeometry(sh, {depth:len, bevelEnabled:false, curveSegments:1});
+  g.translate(-wR/2, t, 0);
+  const pl = new THREE.Mesh(g, plechMat); pl.castShadow = pl.receiveShadow = true;
+  pl.rotation.x = ang; pl.position.set(0, G.topLat(G.zTopE) + 0.002, G.zTopE); out.add(pl);
+  const bx = (w, h, d, mat) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat || plechMat); m.castShadow = m.receiveShadow = true; return m; };
+  /* difuzní fólie — na záklopu, vidět jen na hranách */
+  const stack = G.deckT;
+  /* čelo a krycí pás na vyšší straně (u zdi = lemování ke zdi) */
+  const yE = G.topLat(G.zTopE), fh = hRib + stack + 0.07;
+  if(G.wall){
+    /* lemování ke zdi: pás na plechu + svislá část na zdi */
+    const lz = G.zTopE + 0.06, lem = bx(wR + 0.02, 0.004, 0.12); lem.rotation.x = ang; lem.position.set(0, G.topLat(lz) + hRib + 0.012, lz); out.add(lem);
+    const lv = bx(wR + 0.02, 0.14, 0.004); lv.position.set(0, yE + hRib + 0.08, G.zWall + 0.004); out.add(lv);
+  } else {
+    const face = bx(wR + 0.02, fh, 0.008); face.position.set(0, yE + hRib + 0.015 - fh/2, G.zTopE - 0.010); out.add(face);
+    const capZ = G.zTopE + 0.055, cap = bx(wR + 0.02, 0.006, 0.13);
+    cap.rotation.x = ang; cap.position.set(0, G.topLat(capZ) + hRib + 0.014, capZ); out.add(cap);
+  }
+  /* závětrné lišty — kryjí i hranu latí */
+  const zc = (G.zTopE + G.zEaveE)/2, vh = 0.07 + stack;
+  [-1, 1].forEach(sg => {
+    const xe = sg*G.wDeck/2;
+    const hz = bx(0.09, 0.004, G.rl); hz.rotation.x = ang; hz.position.set(xe - sg*0.03, G.topLat(zc) + hRib + 0.010, zc); out.add(hz);
+    const vt = bx(0.004, vh, G.rl); vt.rotation.x = ang; vt.position.set(xe + sg*0.012, G.topLat(zc) + hRib + 0.01 - vh/2, zc); out.add(vt);
+  });
+  /* okapnice */
+  const ok = bx(G.wDeck + 0.02, 0.003, 0.13); ok.rotation.x = ang + 0.45; ok.position.set(0, G.topLat(G.zEaveE) - 0.01, G.zEaveE + 0.05); out.add(ok);
+  /* plastový žlab + čela + svod */
+  const gl = G.wDeck + 0.06, yG = G.topKrok(G.zEaveE) - 0.04, zG = G.zEaveE + 0.10, rO = 0.062, rI = 0.058;
+  const shg = new THREE.Shape(); shg.absarc(0, 0, rO, Math.PI, 2*Math.PI, false); shg.lineTo(rI, 0);
+  shg.absarc(0, 0, rI, 0, Math.PI, true); shg.closePath();
+  const zl = new THREE.Mesh(new THREE.ExtrudeGeometry(shg, {depth:gl, bevelEnabled:false, curveSegments:16}), gutterMat);
+  zl.castShadow = true; zl.rotation.y = Math.PI/2; zl.position.set(-gl/2, yG, zG); out.add(zl);
+  const lip = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, gl, 8), gutterMat);
+  lip.rotation.z = Math.PI/2; lip.position.set(0, yG, zG + rO); out.add(lip);
+  [-1, 1].forEach(s => { const c2 = new THREE.Mesh(new THREE.CircleGeometry(rO, 20, Math.PI, Math.PI), gutterMat);
+    c2.rotation.y = s*Math.PI/2; c2.position.set(s*gl/2, yG, zG); out.add(c2); });
+  /* svod na zvolené straně (vlevo/vpravo při pohledu na okap zvenku) */
+  const xS = (G.svodSign || 1)*(G.wDeck/2 - 0.25), rP = 0.04, Rk = 0.09, yK = 0.22;   // yK = začátek kolena nad zemí
+  /* hrdlo ze žlabu */
+  const hr = new THREE.Mesh(new THREE.CylinderGeometry(rP + 0.006, rP + 0.006, 0.05, 20), gutterMat);
+  hr.position.set(xS, yG - rO - 0.02, zG); out.add(hr);
+  /* svislý svod až ke kolenu */
+  const svTop = yG - rO - 0.04, svL = svTop - yK;
+  const sv = new THREE.Mesh(new THREE.CylinderGeometry(rP, rP, svL, 20), gutterMat);
+  sv.castShadow = true; sv.position.set(xS, yK + svL/2, zG); out.add(sv);
+  /* výtokové koleno 90° ven od pergoly + krátký výtok */
+  const tg = new THREE.TorusGeometry(Rk, rP, 14, 16, Math.PI/2);
+  tg.applyMatrix4(new THREE.Matrix4().makeBasis(new THREE.Vector3(0, 0, -1), new THREE.Vector3(0, -1, 0), new THREE.Vector3(-1, 0, 0)));
+  const kol = new THREE.Mesh(tg, gutterMat); kol.castShadow = true; kol.position.set(xS, yK, zG + Rk); out.add(kol);
+  const vyt = new THREE.Mesh(new THREE.CylinderGeometry(rP, rP, 0.08, 20), gutterMat);
+  vyt.rotation.x = Math.PI/2; vyt.position.set(xS, yK - Rk, zG + Rk + 0.04); vyt.castShadow = true; out.add(vyt);
+}
+function wallMeshes(G, out){
+  const w = G.Lbase + 6, h = Math.max(4.6, G.hF + 1.6), t = 0.35;
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, t), wallMat);
+  m.position.set(0, h/2, G.zWall - t/2 - 0.003); m.castShadow = m.receiveShadow = true; out.add(m);
+  const s = new THREE.Mesh(new THREE.BoxGeometry(w + 0.02, 0.4, t + 0.02), soklMat);
+  s.position.set(0, 0.2, G.zWall - t/2 - 0.003); s.receiveShadow = true; out.add(s);
+  /* kotvy pozednice — hlavy matic na líci pozednice */
+  const n = G.nKotev || 0;
+  for(let i = 0; i < n; i++){
+    const x = -G.L/2 + 0.1 + i*(G.L - 0.2)/Math.max(1, n - 1);
+    const k = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.012, 6), steelMat);
+    k.rotation.x = Math.PI/2; k.position.set(x, G.hF - K.plateH/2, G.zF + K.plateW/2 + 0.006); out.add(k);
+  }
+}
+
+let model = null, hl = null, G = null;
+function disposeTree(o){ o.traverse(n => { if(n.geometry) n.geometry.dispose(); }); }
+function buildModel(cfg){
+  G = geometry(cfg);
+  /* svod: vlevo/vpravo při pohledu na okap zvenku = lokální −x / +x */
+  G.svodSign = state.svod === 'L' ? -1 : 1;
+  if(model){ scene.remove(model); disposeTree(model); }
+  model = new THREE.Group();
+  model.rotation.y = G.th;
+  let seed = 1;
+  G.parts.forEach(p => {
+    seed++;
+    if(p.k === 'box'){
+      const mats = p.mat === 'osb' ? [osbMat, osbMat, osbMat] : (woodMats[p.mat] || woodMats.post);
+      const m = p.kvh ? kvhMesh(p, mats[seed % 3], seed) : woodBox(p.w, p.h, p.d, p.grain, mats[seed % 3], seed);
+      m.position.set(p.x, p.y, p.z); if(p.rx) m.rotation.x = p.rx;
+      model.add(m);
+    } else if(p.k === 'cladPoly'){
+      model.add(cladPolyMesh(G, p, woodMats.clad[seed % 3]));
+    } else if(p.k === 'brace'){
+      const b = braceMesh(p.mir, woodMats.brace[seed % 3]);
+      b.rotation.y = p.ry || 0; b.position.set(p.x, p.y, p.z); model.add(b);
+    } else if(p.k === 'foot'){
+      const f = footMesh(p.a); f.position.set(p.x, 0, p.z); model.add(f);
+    } else if(p.k === 'hanger'){
+      const hgr = new THREE.Mesh(new THREE.BoxGeometry(K.vazW + 0.006, K.vazH*0.8, 0.09), steelMat);
+      hgr.position.set(p.x, p.y + K.vazH*0.4, p.z + 0.045); hgr.castShadow = true; model.add(hgr);
+    } else if(p.k === 'roof') roofMeshes(G, model);
+  });
+  if(G.wall) wallMeshes(G, model);
+  scene.add(model);
+  const R = Math.max(G.L, G.rl) * 0.85 + 2.5;
+  const sc = sun.shadow.camera; sc.left = -R; sc.right = R; sc.top = R; sc.bottom = -R; sc.near = 1; sc.far = 60;
+  sc.updateProjectionMatrix();
+  sun.position.copy(SUN_DIR).multiplyScalar(25); sun.target.position.set(0, 0, 0);
+  showHighlight(hoverSide);
+}
+
+/* náhled strany při najetí */
+const hlMat = new THREE.MeshBasicMaterial({color:0x2f4a35, transparent:true, opacity:0.22, depthWrite:false, side:THREE.DoubleSide});
+let hoverSide = null;
+function showHighlight(ws){
+  hoverSide = ws;
+  if(hl){ hl.parent && hl.parent.remove(hl); hl.geometry.dispose(); hl = null; }
+  if(!ws || !G || !model) return;
+  const s = G.worldToLocalSide(ws);
+  if(G.wall && s === 'F') return;
+  const sd = G.sides[s];
+  const c = G.cladLocal[s] || {u0:sd.u0, u1:sd.u1};
+  const top = u => sd.axis === 'x' ? G.topKrok(Math.max(G.zTopE, Math.min(G.zEaveE, u))) : G.topKrok(sd.plane);
+  const shp = new THREE.Shape();
+  shp.moveTo(c.u0, K.footH); shp.lineTo(c.u1, K.footH); shp.lineTo(c.u1, top(c.u1)); shp.lineTo(c.u0, top(c.u0)); shp.closePath();
+  hl = new THREE.Mesh(new THREE.ShapeGeometry(shp), hlMat);
+  const off = sd.dir*0.04;
+  if(sd.axis === 'x'){ hl.rotation.y = -Math.PI/2; hl.position.set(sd.plane + off, 0, 0); }
+  else hl.position.set(0, 0, sd.plane + off);
+  hl.renderOrder = 5; model.add(hl);
+}
+
+/* ── kamera: vlastní orbit, plynulý zoom ── */
+const cam = {az:-0.55, el:0.30, dist:12, tAz:-0.55, tEl:0.30, tDist:12, target:new THREE.Vector3(0, 1.4, 0), tY:1.4, auto:true};
+function fitDist(){ const a = camera.aspect || 1.5; return Math.max(7.5, Math.max(state.W, state.D)*1.55 + 4)*Math.max(1, Math.pow(1.25/a, 0.85)); }
+function baseAz(){   // kamera stojí na straně okapu, když je vzadu zeď
+  if(!state.wall) return -0.55;
+  const d = {B:[0, 1], F:[0, -1], L:[-1, 0], R:[1, 0]}[state.okap];
+  return Math.atan2(d[0], -d[1]) - 0.55;
+}
+function applyCam(){
+  const k = 0.14;
+  cam.az += (cam.tAz - cam.az)*k; cam.el += (cam.tEl - cam.el)*k;
+  cam.dist += (cam.tDist - cam.dist)*0.18;
+  cam.target.y += (cam.tY - cam.target.y)*k;
+  /* kamera smí jít i pod úroveň střechy (pohled zespodu), ale ne pod zem */
+  const elMin = Math.asin(Math.max(-0.95, Math.min(0.5, (0.25 - cam.target.y)/cam.dist)));
+  if(cam.el < elMin) cam.el = elMin; if(cam.tEl < elMin) cam.tEl = elMin;
+  const ce = Math.cos(cam.el);
+  camera.position.set(cam.target.x + cam.dist*ce*Math.sin(cam.az), cam.target.y + cam.dist*Math.sin(cam.el),
+                      cam.target.z - cam.dist*ce*Math.cos(cam.az));
+  camera.lookAt(cam.target);
+}
+const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduceMotion) cam.auto = false;
+const pointers = new Map(); let pinch0 = 0, dist0 = 0;
+function stopAuto(){ cam.auto = false; $('hint').style.opacity = 0; }
+canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, {x:e.clientX, y:e.clientY}); stopAuto();
+  if(pointers.size === 2){ const [a, b] = [...pointers.values()]; pinch0 = Math.hypot(a.x - b.x, a.y - b.y); dist0 = cam.tDist; } });
+canvas.addEventListener('pointermove', e => {
+  const p = pointers.get(e.pointerId); if(!p) return;
+  if(pointers.size === 1){
+    cam.tAz -= (e.clientX - p.x)*0.006;
+    cam.tEl = Math.max(-1.2, Math.min(1.45, cam.tEl + (e.clientY - p.y)*0.005));
+  }
+  p.x = e.clientX; p.y = e.clientY;
+  if(pointers.size === 2){ const [a, b] = [...pointers.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y);
+    if(pinch0) cam.tDist = Math.max(4, Math.min(35, dist0*pinch0/d)); }
+});
+const up = e => { pointers.delete(e.pointerId); if(pointers.size < 2) pinch0 = 0; };
+canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);
+/* zoom úměrný skutečnému posunu kolečka/touchpadu — ne pevný skok za každou událost */
+canvas.addEventListener('wheel', e => {
+  e.preventDefault(); stopAuto();
+  let dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1);
+  dy = Math.max(-120, Math.min(120, dy));
+  cam.tDist = Math.max(4, Math.min(35, cam.tDist*Math.exp(dy*0.0012)));
+}, {passive:false});
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => {
+  stopAuto(); const v = b.dataset.view; cam.tDist = fitDist(); cam.tY = 1.4;
+  if(v === 'front'){ cam.tAz = baseAz() + 0.2; cam.tEl = 0.22; }
+  if(v === 'side'){ cam.tAz = baseAz() - 1.0; cam.tEl = 0.2; }
+  if(v === 'top'){ cam.tAz = baseAz() + 0.35; cam.tEl = 1.35; }
+  if(v === 'under'){ cam.tY = 2.0; cam.tDist = Math.max(state.W, state.D)*0.45 + 1.2; cam.tEl = -1.0; cam.tAz = baseAz() + 0.4; }
+}));
+
+function resize(){
+  const r = $('stage').getBoundingClientRect();
+  renderer.setSize(r.width, r.height, false);
+  camera.aspect = r.width/Math.max(1, r.height); camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+let last = performance.now();
+function loop(now){
+  const dt = Math.min(0.05, (now - last)/1000); last = now;
+  if(cam.auto) cam.tAz += dt*0.07;
+  applyCam();
+  renderer.render(scene, camera);
+  requestAnimationFrame(loop);
+}
+
+/* ═══════════════ OVLÁDÁNÍ A CENA ═══════════════ */
+const fmt1 = v => v.toFixed(1).replace('.', ',');
+const fmt2 = v => v.toFixed(2).replace('.', ',');
+const czk = v => Math.round(v).toLocaleString('cs-CZ').replace(/\s/g, '\u00a0') + '\u00a0Kč';
+const roundP = v => Math.round(v/NASTAVENI.ZAOKROUHLIT)*NASTAVENI.ZAOKROUHLIT;
+const sideLen = s => (s === 'F' || s === 'B') ? state.W : state.D;
+const H_MAX = 3.6;                         // horní poloha posuvníku výšky = „ke střeše“
+
+function setRangeFill(el){ el.style.setProperty('--p', ((el.value - el.min)/(el.max - el.min)*100) + '%'); }
+/* šířka po okapu max 8 m, rozpon krokví (po spádu) max 6 m */
+function limits(){
+  const along = state.okap === 'B' || state.okap === 'F';
+  $('w').max = along ? 8 : 6; $('d').max = along ? 6 : 8;
+  ['w', 'd'].forEach(id => { const el = $(id); if(+el.value > +el.max) el.value = el.max; setRangeFill(el); });
+  state.W = +$('w').value; state.D = +$('d').value;
+}
+['w', 'd'].forEach(id => {
+  const el = $(id);
+  el.addEventListener('input', () => { state[id === 'w' ? 'W' : 'D'] = +el.value; setRangeFill(el); schedule(); });
+});
+document.querySelectorAll('.step').forEach(b => b.addEventListener('click', () => {
+  const el = $(b.dataset.for);
+  el.value = Math.min(+el.max, Math.max(+el.min, +(+el.value + (+b.dataset.d)*(+el.step)).toFixed(2)));
+  el.dispatchEvent(new Event('input'));
+}));
+$('slope').addEventListener('input', e => { state.slope = +e.target.value; setRangeFill(e.target); schedule(); });
+setRangeFill($('slope'));
+document.querySelectorAll('#segDeck button').forEach(b => b.addEventListener('click', () => { state.deck = b.dataset.v; schedule(); }));
+[['natP', 'pergola'], ['natC', 'clad'], ['natF', 'floor']].forEach(([id, k]) =>
+  $(id).addEventListener('change', e => { state.nater[k] = e.target.checked; buildWoodMats(); schedule(); }));
+$('patky').addEventListener('change', e => { state.patky = e.target.checked; schedule(); });
+$('floor').addEventListener('change', e => { state.floor = e.target.checked; schedule(); });
+$('wall').addEventListener('change', e => {
+  state.wall = e.target.checked;
+  cam.tAz = baseAz(); cam.tDist = fitDist();
+  schedule();
+});
+
+/* okap */
+const OKAP_OPT = [['B', 'Dozadu'], ['R', 'Do boku']];   // okap je vždy na nižší straně
+OKAP_OPT.forEach(([v, n]) => {
+  const b = document.createElement('button'); b.type = 'button'; b.dataset.v = v; b.textContent = n;
+  b.addEventListener('click', () => { state.okap = v; limits(); if(state.wall){ cam.tAz = baseAz(); } schedule(); });
+  $('segOkap').appendChild(b);
+});
+document.querySelectorAll('#segSvod button').forEach(b => b.addEventListener('click', () => { state.svod = b.dataset.v; schedule(); }));
+
+/* barvy */
+BARVY.forEach(b => {
+  const s = document.createElement('button');
+  s.type = 'button'; s.className = 'swatch'; s.setAttribute('role', 'radio'); s.setAttribute('aria-label', b.name);
+  s.dataset.id = b.id; s.innerHTML = `<i style="background:${b.sw}"></i>`;
+  s.addEventListener('click', () => { state.color = b.id; buildWoodMats(); renderSwatches(); });
+  $('swatches').appendChild(s);
+});
+BARVY_STRECHY.forEach(b => {
+  const s = document.createElement('button');
+  s.type = 'button'; s.className = 'swatch'; s.setAttribute('role', 'radio'); s.setAttribute('aria-label', b.name);
+  s.dataset.roof = b.id; s.innerHTML = `<i style="background:${b.c}"></i>`;
+  s.addEventListener('click', () => { state.roof = b.id; applyRoofColor(); renderSwatches(); renderMaterials(); });
+  $('roofSwatches').appendChild(s);
+});
+function renderSwatches(){
+  document.querySelectorAll('#roofSwatches .swatch').forEach(s => s.setAttribute('aria-checked', s.dataset.roof === state.roof));
+  $('roofName').textContent = BARVY_STRECHY.find(b => b.id === state.roof).name;
+  document.querySelectorAll('#swatches .swatch').forEach(s => s.setAttribute('aria-checked', s.dataset.id === state.color));
+  $('colorName').textContent = BARVY.find(b => b.id === state.color).name;
+}
+
+/* obložení: rozsah se drží v podílech délky strany, takže při změně rozměru zůstane smysluplný */
+const cladUI = {};
+STRANY.forEach(st => {
+  const row = document.createElement('div'); row.className = 'sideRow'; row.dataset.s = st.s;
+  const fromTxt = (st.s === 'F' || st.s === 'B') ? 'zleva při pohledu zepředu' : 'od přední strany';
+  row.innerHTML = `<label class="chk"><input type="checkbox" data-s="${st.s}"><span>${st.name} strana</span><span class="sub" style="margin-left:auto;font-size:12.5px;color:var(--ink2)"></span></label>
+    <div class="sideDet">
+      <div class="mini"><span>Od</span><input type="range" data-k="a" min="0" max="1" step="0.001" value="0"><output></output></div>
+      <div class="mini"><span>Do</span><input type="range" data-k="b" min="0" max="1" step="0.001" value="1"><output></output></div>
+      <div class="mini"><span>Výška</span><input type="range" data-k="h" min="0.6" max="${H_MAX}" step="0.05" value="${H_MAX}"><output></output></div>
+      <p class="note" style="margin-top:4px">Od a do se měří ${fromTxt}.</p>
+    </div>`;
+  $('sideList').appendChild(row);
+  cladUI[st.s] = row;
+  const chk = row.querySelector('input[type=checkbox]');
+  chk.addEventListener('change', () => toggleSide(st.s, chk.checked));
+  row.addEventListener('mouseenter', () => showHighlight(st.s));
+  row.addEventListener('mouseleave', () => showHighlight(null));
+  row.querySelectorAll('input[type=range]').forEach(r => {
+    r.addEventListener('input', () => {
+      const c = state.clad[st.s]; if(!c) return;
+      const len = sideLen(st.s), minF = Math.min(0.9, 0.3/len);
+      if(r.dataset.k === 'a'){ c.fa = Math.min(+r.value, c.fb - minF); r.value = c.fa; }
+      if(r.dataset.k === 'b'){ c.fb = Math.max(+r.value, c.fa + minF); r.value = c.fb; }
+      if(r.dataset.k === 'h'){ c.h = +r.value >= H_MAX - 1e-6 ? null : +r.value; }
+      setRangeFill(r); schedule();
+    });
+  });
+});
+function toggleSide(s, on){
+  if(on) state.clad[s] = state.clad[s] || {fa:0, fb:1, h:null}; else delete state.clad[s];
+  schedule();
+}
+function cfgFromState(){
+  const clad = {};
+  Object.entries(state.clad).forEach(([s, c]) => { const L = sideLen(s);
+    clad[s] = (s === 'F' || s === 'B') ? {a:(1 - c.fb)*L, b:(1 - c.fa)*L, h:c.h} : {a:c.fa*L, b:c.fb*L, h:c.h}; });
+  return {W:state.W, D:state.D, okap:state.okap, wall:state.wall, floor:state.floor, clad, slopeDeg:state.slope, deck:state.deck, nater:state.nater, patky:state.patky};
+}
+function renderSides(){
+  STRANY.forEach(st => {
+    const row = cladUI[st.s], c = state.clad[st.s], L = sideLen(st.s);
+    const isWall = state.wall && G.wallWorldSide === st.s;
+    const chk = row.querySelector('input[type=checkbox]');
+    chk.disabled = isWall; row.classList.toggle('dis', isWall);
+    if(isWall && c){ delete state.clad[st.s]; }
+    chk.checked = !!state.clad[st.s]; row.classList.toggle('on', !!state.clad[st.s]);
+    const ls = G.worldToLocalSide(st.s);
+    row.querySelector('.sub').textContent = isWall ? 'u zdi' : (st.s === state.okap ? 'okap' : '') +
+      (state.clad[st.s] && G.cladBySide[ls] ? (st.s === state.okap ? ', ' : '') + fmt1(G.cladBySide[ls]) + ' m²' : '');
+    if(!c) return;
+    const [ra, rb, rh] = row.querySelectorAll('input[type=range]'), [oa, ob, oh] = row.querySelectorAll('output');
+    ra.value = c.fa; rb.value = c.fb; rh.value = c.h == null ? H_MAX : c.h;
+    [ra, rb, rh].forEach(setRangeFill);
+    oa.textContent = fmt2(c.fa*L) + ' m'; ob.textContent = fmt2(c.fb*L) + ' m';
+    oh.textContent = c.h == null ? 'ke střeše' : fmt2(c.h) + ' m';
+  });
+}
+function renderPlan(){
+  const svg = $('planSvg'), W = 150, H = 140;
+  const sx = 96/Math.max(state.W, state.D), pw = state.W*sx, pd = state.D*sx;
+  const x0 = (W - pw)/2, y0 = (H - pd)/2 - 4;
+  const X = x => x0 + (state.W/2 - x)*sx, Y = z => y0 + (state.D/2 - z)*sx;
+  const toW = (x, z) => rotXZ(x, z, G.th);                // lokál → svět
+  let h = `<rect x="${x0}" y="${y0}" width="${pw}" height="${pd}" fill="#eef1ec" stroke="#cfd5cc" stroke-dasharray="3 3"/>`;
+  /* krokve */
+  G.raftXs.forEach(x => { const a = toW(x, G.zTopE), b = toW(x, G.zEaveE);
+    const cl = v => Math.max(0, Math.min(1, v));
+    h += `<line x1="${X(a[0])}" y1="${Y(a[1])}" x2="${X(b[0])}" y2="${Y(b[1])}" stroke="#d6dcd3" stroke-width="1" clip-path="url(#cp)"/>`; });
+  h = `<defs><clipPath id="cp"><rect x="${x0}" y="${y0}" width="${pw}" height="${pd}"/></clipPath></defs>` + h;
+  /* šipka spádu k okapu */
+  const c0 = toW(0, -G.D*0.25), c1 = toW(0, G.D*0.25);
+  const ang = Math.atan2(Y(c1[1]) - Y(c0[1]), X(c1[0]) - X(c0[0]));
+  const hx = X(c1[0]), hy = Y(c1[1]);
+  h += `<path d="M${X(c0[0])} ${Y(c0[1])} L${hx} ${hy} M${hx - 6*Math.cos(ang - .5)} ${hy - 6*Math.sin(ang - .5)} L${hx} ${hy} L${hx - 6*Math.cos(ang + .5)} ${hy - 6*Math.sin(ang + .5)}" stroke="#8e988b" stroke-width="1.4" fill="none"/>`;
+  const bars = {F:[x0, y0 + pd - 5, pw, 10], B:[x0, y0 - 5, pw, 10], R:[x0 - 5, y0, 10, pd], L:[x0 + pw - 5, y0, 10, pd]};
+  STRANY.forEach(st => {
+    const [bx, by, bw, bh] = bars[st.s], c = state.clad[st.s];
+    const isWall = state.wall && G.wallWorldSide === st.s;
+    let fill = '';
+    if(c){ const horiz = bw > bh;
+      fill = horiz ? `<rect x="${bx + 2 + c.fa*(bw - 4)}" y="${by + 2}" width="${(c.fb - c.fa)*(bw - 4)}" height="${bh - 4}" rx="2" fill="#b5793f"/>`
+                   : `<rect x="${bx + 2}" y="${by + 2 + (1 - c.fb)*(bh - 4)}" width="${bw - 4}" height="${(c.fb - c.fa)*(bh - 4)}" rx="2" fill="#b5793f"/>`; }
+    if(isWall){
+      h += `<rect x="${bx - 2}" y="${by}" width="${bw + 4}" height="${bh}" fill="url(#hatch)" stroke="#7d807b"/>`;
+    } else {
+      h += `<g class="side${c ? ' on' : ''}" data-s="${st.s}" tabindex="0" role="checkbox" aria-checked="${!!c}" aria-label="${st.name} strana">
+        <rect class="hit" x="${bx - 6}" y="${by - 6}" width="${bw + 12}" height="${bh + 12}"/>
+        <rect class="bar" x="${bx + 2}" y="${by + 2}" width="${bw - 4}" height="${bh - 4}" rx="3" style="fill:#fff"/>${fill}</g>`;
+    }
+  });
+  h = h.replace('<defs>', '<defs><pattern id="hatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="5" height="5" fill="#d9dbd6"/><line x1="0" y1="0" x2="0" y2="5" stroke="#8d908a" stroke-width="1.6"/></pattern>');
+  /* okap — modrá linka na straně okapu */
+  const gb = {F:[x0, y0 + pd + 8, x0 + pw, y0 + pd + 8], B:[x0, y0 - 8, x0 + pw, y0 - 8], R:[x0 - 8, y0, x0 - 8, y0 + pd], L:[x0 + pw + 8, y0, x0 + pw + 8, y0 + pd]}[state.okap];
+  h += `<line x1="${gb[0]}" y1="${gb[1]}" x2="${gb[2]}" y2="${gb[3]}" stroke="#4a7fa8" stroke-width="3" stroke-linecap="round"/>`;
+  /* sloupy a stojiny */
+  const post = (x, z, col) => { const [wx, wz] = toW(x, z); return `<rect x="${X(wx) - 4}" y="${Y(wz) - 4}" width="8" height="8" rx="1.5" fill="${col}" pointer-events="none"/>`; };
+  G.xs.forEach(x => { if(!G.wall) h += post(x, G.zF, '#1e2622'); h += post(x, G.zB, '#1e2622'); });
+  G.extra.forEach(e => { h += post(e.x, e.z, '#8a5a2c'); });
+  h += `<text x="${W/2}" y="${H - 1}" text-anchor="middle" font-size="9" fill="#56605a" font-family="inherit">přední strana</text>`;
+  svg.innerHTML = h;
+  svg.querySelectorAll('.side').forEach(gEl => {
+    const s = gEl.dataset.s;
+    gEl.addEventListener('click', () => toggleSide(s, !state.clad[s]));
+    gEl.addEventListener('keydown', e => { if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); gEl.dispatchEvent(new Event('click')); } });
+    gEl.addEventListener('mouseenter', () => showHighlight(s));
+    gEl.addEventListener('mouseleave', () => showHighlight(null));
+  });
+}
+function renderMaterials(){
+  const r = G.rf, p = v => Math.round(v*1000);
+  const items = [
+    ['Nosná konstrukce', 'KVH hranoly ze smrku — vysušené, hoblované, se sraženými hranami. Sloupy, pozednice, ' + (G.wall ? '' : 'vaznice, ') + 'krokve a vzpěry.'],
+    ['Založení', (state.patky ? 'Betonové patky zhotovíme my; pozinkované kotvy „U“ přišroubované k patkám — dřevo nestojí v zemi.' : 'Betonové patky si zákazník vybetonuje sám podle našeho výkresu (rozmístění a rozměry patek); cena je bez patek.') + (G.wall ? ' Pozednice u zdi kotvená do zdiva — typ a délku kotev určíme podle zdiva a zateplení.' : '')],
+    ['Střecha', `Pultová, sklon ${state.slope}° (${fmt1(G.slope*100)} %) směrem k okapu. Na ${fmt1(G.D + K.post)} m hloubky klesne o ${Math.round(G.slope*G.D*100)} cm.`],
+    ['Záklop', state.deck === 'osb' ? 'OSB desky tl. 18 mm přes celou střechu.' : 'Palubky tl. 19 mm přes celou střechu.'],
+    ['Krytina', `Trapézový plech, ${BARVY_STRECHY.find(b => b.id === state.roof).name}.`],
+    ['Oplechování', 'Lakovaný plech v barvě střechy: okapnice, závětrné lišty' + (G.wall ? ' a lemování ke zdi.' : ' a čelní lemování.')],
+    ['Okapy', 'Plastový půlkulatý žlab s čely a svod ' + (state.svod === 'L' ? 'vlevo' : 'vpravo') + '.'],
+    ['Ochrana dřeva', 'Impregnace proti houbám, plísním a hmyzu' + (state.nater.pergola ? ', poté nátěr lazurou ve 2 vrstvách ze všech stran.' : '. Bez nátěru.')]
+  ];
+  if(Object.keys(state.clad).length) items.push(['Obložení', 'Palubky 19 mm vodorovně, šroubované do sloupů a stojin; doplněné stojiny KVH na vlastních patkách. ' + (state.nater.clad ? 'Impregnace a nátěr ve 2 vrstvách.' : 'Impregnace, bez nátěru.')]);
+  if(state.floor) items.push(['Podlaha', 'Terasové fošny 45×140 mm, na pochozí straně obroušené, s mezerami 6 mm pro odtok vody. Trámy KVH 120×120 na vlastních patkách. Fošny i trámy jsou naimpregnované' + (state.nater.floor ? ' a natřené lazurou ve 2 vrstvách ze všech stran.' : ', bez nátěru.')]);
+  $('matList').innerHTML = items.map(([a, b]) => `<li><b>${a}</b><span>${b}</span></li>`).join('');
+}
+
+let pending = false;
+function schedule(){ if(pending) return; pending = true; requestAnimationFrame(() => { pending = false; update(); }); }
+let lastDist = null, lastBill = null;
+function update(){
+  Object.assign(state, {});                 // stav je jediný zdroj
+  buildModel(cfgFromState());
+  renderSides(); renderPlan(); renderMaterials();
+  $('wall').checked = state.wall; $('floor').checked = state.floor; $('patky').checked = state.patky;
+  const nP = (G.wall ? 1 : 2)*G.nPosts + G.extra.length + (state.floor ? G.floorFoots.filter(f => !f.sdil).length : 0);
+  $('patInfo').textContent = state.patky
+    ? `Vybetonujeme ${nP} ${nP < 5 ? 'patky' : 'patek'} a osadíme pozinkované kotvy „U“.`
+    : 'Patky si vybetonujete sami podle výkresu s rozmístěním a rozměry, který vám pošleme. Cena je bez patek.';
+  $('rowNatC').style.display = Object.keys(state.clad).length ? '' : 'none';
+  $('rowNatF').style.display = state.floor ? '' : 'none';
+  const anyPaint = state.nater.pergola || (state.nater.clad && Object.keys(state.clad).length) || (state.nater.floor && state.floor);
+  $('colorBox').style.display = anyPaint ? '' : 'none';
+  $('segOkap').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === state.okap));
+  $('segSvod').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === state.svod));
+  $('segDeck').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === state.deck));
+  $('slopeOut').innerHTML = `${state.slope}<small>°</small>`;
+  $('slopeNote').textContent = `${fmt1(G.slope*100)} % — na ${fmt1(G.D + K.post)} m hloubky klesne střecha o ${Math.round(G.slope*G.D*100)} cm.`;
+  $('okapNote').textContent = (state.okap === 'B' ? 'Okap je na zadní straně' : 'Okap je na levé straně') + (state.wall ? ', zeď naproti němu.' : '.');
+  $('wOut').innerHTML = `${fmt1(state.W)}<small>m</small>`;
+  $('dOut').innerHTML = `${fmt1(state.D)}<small>m</small>`;
+  $('tagSize').textContent = `${fmt1(state.W)} × ${fmt1(state.D)} m`;
+  $('tagArea').textContent = `půdorys ${fmt1(state.W*state.D)} m², střecha ${fmt1(G.deckArea)} m²`;
+  const hF = G.hF - K.plateH, hB = G.hB - K.plateH, n = G.nPosts;
+  $('infoKon').textContent = `${n} ${n < 5 ? 'sloupy' : 'sloupů'} ${G.wall ? 'u okapu' : 'na každé straně'}, podchozí výška ${fmt2(hB)} m u okapu, ${fmt2(hF)} m ${G.wall ? 'u zdi' : 'na vyšší straně'}. Střecha má sklon ${state.slope}°.`;
+  const nCl = Object.keys(state.clad).length;
+  $('oblArea').textContent = nCl ? `${fmt1(G.cladArea)} m²${G.extra.length ? `, +${G.extra.length} ${G.extra.length === 1 ? 'stojina' : G.extra.length < 5 ? 'stojiny' : 'stojin'}` : ''}` : 'žádné';
+  $('floorInfo').textContent = state.floor ? `${fmt1(G.floorArea)} m² — broušené fošny 45 mm, mezery 6 mm` : 'Broušené fošny 45 mm na trámech 120×120, mezery 6 mm';
+  /* ceník je v cenách S DPH — výsledek je rovnou konečná cena, bez DPH se jen dopočítá pro informaci */
+  const b = bill(G), dphK = 1 + NASTAVENI.DPH/100, k = 1;
+  $('priceLbl').textContent = NASTAVENI.PLATCE_DPH ? 'Orientační cena s montáží, vč. DPH' : 'Orientační cena s montáží';
+  $('priceBig').textContent = czk(roundP(b.total*k));
+  $('priceSub').textContent = NASTAVENI.PLATCE_DPH ? `${czk(roundP(b.total/dphK))} bez DPH` : '';
+  let sp = `<span>Pergola</span><span>${czk(roundP(b.groups.konstr*k))}</span>`;
+  if(nCl) sp += `<span>Obložení</span><span>${czk(roundP(b.groups.clad*k))}</span>`;
+  if(state.floor) sp += `<span>Podlaha</span><span>${czk(roundP(b.groups.floor*k))}</span>`;
+  $('split').innerHTML = sp;
+  lastBill = b;
+  const fd = fitDist(); if(lastDist === null || Math.abs(fd - lastDist) > 0.01){ cam.tDist = fd; lastDist = fd; }
+}
+
+/* poptávka */
+function summary(){
+  const k = 1;                              // ceník je s DPH
+  const cl = STRANY.filter(s => state.clad[s.s]).map(s => {
+    const c = state.clad[s.s], L = sideLen(s.s);
+    return `${s.name.toLowerCase()} ${fmt2(c.fa*L)}–${fmt2(c.fb*L)} m, výška ${c.h == null ? 'ke střeše' : fmt2(c.h) + ' m'}`;
+  });
+  return [
+    'Dobrý den, mám zájem o pergolu:',
+    `• rozměr ${fmt1(state.W)} × ${fmt1(state.D)} m (vnější hrany sloupů), pultová střecha ${state.slope}°, záklop ${state.deck === 'osb' ? 'OSB' : 'palubky'}`,
+    `• umístění: ${state.wall ? 'ke stěně domu' : 'volně stojící'}, sklon ${OKAP_OPT.find(o => o[0] === state.okap)[1].toLowerCase()}, svod ${state.svod === 'L' ? 'vlevo' : 'vpravo'}`,
+    `• obložení: ${cl.length ? cl.join('; ') : 'bez obložení'}`,
+    `• podlaha: ${state.floor ? 'ano' : 'ne'}`,
+    `• patky: ${state.patky ? 'zhotoví dodavatel' : 'zákazník sám podle výkresu'}`,
+    `• nátěr: pergola ${state.nater.pergola ? 'ano' : 'ne'}${Object.keys(state.clad).length ? ', obložení ' + (state.nater.clad ? 'ano' : 'ne') : ''}${state.floor ? ', podlaha ' + (state.nater.floor ? 'ano' : 'ne') : ''}${(state.nater.pergola || (state.nater.clad && Object.keys(state.clad).length) || (state.nater.floor && state.floor)) ? ', barva ' + BARVY.find(b => b.id === state.color).name : ''}`,
+    `• barva střechy: ${BARVY_STRECHY.find(b => b.id === state.roof).name}`,
+    `• orientační cena z konfigurátoru: ${czk(roundP(lastBill.total*k))}${NASTAVENI.PLATCE_DPH ? ' vč. DPH' : ''}`,
+  ].filter(x => x !== '').join('\n');
+}
+function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2600); }
+/* ── poptávkový formulář (odesílá FormSubmit na NASTAVENI.EMAIL) ── */
+function configText(){ return summary().split('\n').slice(1).filter(l => l.startsWith('•')).map(l => l.slice(2)).join('\n'); }
+function openModal(){
+  $('mSum').textContent = configText();
+  $('formView').style.display = ''; $('okView').style.display = 'none'; $('qErr').style.display = 'none';
+  $('modal').classList.add('open'); setTimeout(() => $('qName').focus(), 50);
+}
+function closeModal(){ $('modal').classList.remove('open'); $('cta').focus(); }
+$('cta').addEventListener('click', e => { e.preventDefault(); openModal(); });
+$('qCancel').addEventListener('click', closeModal);
+$('qForm').addEventListener('input', () => { $('qErr').style.display = 'none'; });
+$('okClose').addEventListener('click', closeModal);
+$('modal').addEventListener('click', e => { if(e.target.id === 'modal') closeModal(); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && $('modal').classList.contains('open')) closeModal(); });
+function showErr(html){ const el = $('qErr'); el.innerHTML = html; el.style.display = 'block'; }
+function mailtoLink(fields){
+  const body = summary() + '\n\nJméno: ' + fields.jmeno + '\nTelefon: ' + fields.telefon + '\nE-mail: ' + fields.email + '\nObec: ' + fields.obec + (fields.poznamka ? '\nPoznámka: ' + fields.poznamka : '');
+  return `mailto:${NASTAVENI.EMAIL}?subject=${encodeURIComponent(`Poptávka pergoly ${fmt1(state.W)} × ${fmt1(state.D)} m`)}&body=${encodeURIComponent(body)}`;
+}
+$('qForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = {jmeno:$('qName').value.trim(), telefon:$('qPhone').value.trim(), email:$('qEmail').value.trim(), obec:$('qCity').value.trim(), poznamka:$('qNote').value.trim()};
+  if(!f.jmeno || !f.telefon || !f.email || !f.obec){ showErr('Vyplňte prosím jméno, telefon, e-mail a obec.'); return; }
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email)){ showErr('Zkontrolujte prosím e-mailovou adresu.'); return; }
+  if(!/[0-9]{3}/.test(f.telefon.replace(/\s/g, ''))){ showErr('Zkontrolujte prosím telefonní číslo.'); return; }
+  const k = 1;                              // ceník je s DPH
+  const data = {
+    _subject: `Poptávka pergoly ${fmt1(state.W)} × ${fmt1(state.D)} m — ${f.obec}`,
+    _template: 'table', _captcha: 'false', _honey: $('qHoney').value,
+    'Jméno': f.jmeno, 'Telefon': f.telefon, email: f.email, 'Obec': f.obec, 'Poznámka': f.poznamka || '—',
+    'Konfigurace': configText(),
+    'Orientační cena': czk(roundP(lastBill.total*k)) + (NASTAVENI.PLATCE_DPH ? ' vč. DPH (' + czk(roundP(lastBill.total/(1 + NASTAVENI.DPH/100))) + ' bez DPH)' : '')
+  };
+  const btn = $('qSend'); btn.disabled = true; btn.textContent = 'Odesílám…'; $('qErr').style.display = 'none';
+  try {
+    const r = await fetch(`https://formsubmit.co/ajax/${NASTAVENI.FORM_ID}`, {
+      method:'POST', headers:{'Content-Type':'application/json', 'Accept':'application/json'}, body:JSON.stringify(data)});
+    let j = {}; try { j = await r.json(); } catch(_){}
+    const ok = r.ok && (j.success === true || j.success === 'true');
+    if(!ok) throw new Error(j.message || ('HTTP ' + r.status));
+    $('formView').style.display = 'none'; $('okView').style.display = '';
+  } catch(err){
+    console.warn('Poptávka se neodeslala:', err);
+    showErr(`Poptávku se nepodařilo odeslat. <a href="${mailtoLink(f)}">Pošlete ji e-mailem</a> — text se vyplní sám.`);
+  } finally { btn.disabled = false; btn.textContent = 'Odeslat poptávku'; }
+});
+
+renderSwatches();
+limits();
+resize();
+update();
+cam.dist = cam.tDist; applyCam();
+requestAnimationFrame(loop);
+window.pergola = {state, update:() => schedule(), bill:() => lastBill, geometry:() => G};
+</script>
+</body></html>

@@ -1,0 +1,25 @@
+/* Ceník konfigurátoru pergoly — Kč S DPH. Uloženo v cenik-editor.html 25. 9. 2026 11:32:26. */
+var CENIK = {
+  "m3": 17500,
+  "bm": {},
+  "prorez": 12,
+  "palubky": 350,
+  "osb": 280,
+  "plech": 350,
+  "oplechovani": 250,
+  "zlab": 520,
+  "patka": 1800,
+  "trmen": 0,
+  "impregnace": 60,
+  "nater": 320,
+  "spoj": 20,
+  "montaz": 900,
+  "doprava": 1500,
+  "praceFix": 0,
+  "marze": 0,
+  "obklad": 600,
+  "podlaha": 1500,
+  "kotvaZed": 0,
+  "obkladNater": 350,
+  "podlahaNater": 350
+};
