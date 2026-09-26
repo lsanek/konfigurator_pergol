@@ -1538,7 +1538,7 @@ function renderMaterials(){
     ['Ochrana dřeva', 'Impregnace proti houbám, plísním a hmyzu' + (state.nater.pergola ? ', poté nátěr lazurou ve 2 vrstvách ze všech stran.' : '. Bez nátěru.')]
   ];
   if(Object.keys(state.clad).length) items.push(['Obložení', 'Palubky 19 mm vodorovně, šroubované do sloupů a stojin; doplněné stojiny KVH na vlastních patkách. ' + (state.nater.clad ? 'Impregnace a nátěr ve 2 vrstvách.' : 'Impregnace, bez nátěru.')]);
-  if(state.floor) items.push(['Podlaha', 'Terasové fošny 45×140 mm, na pochozí straně obroušené, s mezerami 6 mm pro odtok vody. Trámy KVH 120×120 na vlastních patkách. Fošny i trámy jsou naimpregnované' + (state.nater.floor ? ' a natřené lazurou ve 2 vrstvách ze všech stran.' : ', bez nátěru.')]);
+  if(state.floor) items.push(['Podlaha', 'Fošny minimální tloušťky 40 mm, na pochozí straně obroušené, s mezerami 6 mm pro odtok vody. Trámy KVH 120×120 na vlastních patkách. Fošny i trámy jsou naimpregnované' + (state.nater.floor ? ' a natřené lazurou ve 2 vrstvách ze všech stran.' : ', bez nátěru.')]);
   $('matList').innerHTML = items.map(([a, b]) => `<li><b>${a}</b><span>${b}</span></li>`).join('');
 }
 
@@ -1572,7 +1572,7 @@ function update(){
   $('infoKon').textContent = `${n} ${n < 5 ? 'sloupy' : 'sloupů'} ${G.wall ? 'u okapu' : 'na každé straně'}, podchozí výška ${fmt2(hB)} m u okapu, ${fmt2(hF)} m ${G.wall ? 'u zdi' : 'na vyšší straně'}. Střecha má sklon ${state.slope}°.`;
   const nCl = Object.keys(state.clad).length;
   $('oblArea').textContent = nCl ? `${fmt1(G.cladArea)} m²${G.extra.length ? `, +${G.extra.length} ${G.extra.length === 1 ? 'stojina' : G.extra.length < 5 ? 'stojiny' : 'stojin'}` : ''}` : 'žádné';
-  $('floorInfo').textContent = state.floor ? `${fmt1(G.floorArea)} m² — broušené fošny 45 mm, mezery 6 mm` : 'Broušené fošny 45 mm na trámech 120×120, mezery 6 mm';
+  $('floorInfo').textContent = state.floor ? `${fmt1(G.floorArea)} m² — broušené fošny min. 40 mm, mezery 6 mm` : 'Broušené fošny min. tloušťky 40 mm, mezery 6 mm';
   /* ceník je v cenách S DPH — výsledek je rovnou konečná cena, bez DPH se jen dopočítá pro informaci */
   const b = bill(G), dphK = 1 + NASTAVENI.DPH/100, k = 1;
   $('priceLbl').textContent = NASTAVENI.PLATCE_DPH ? 'Orientační cena s montáží, vč. DPH' : 'Orientační cena s montáží';
