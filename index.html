@@ -737,19 +737,21 @@ function bill(g){
 
 /* ═══════════════ 3D SCÉNA ═══════════════ */
 const $ = id => document.getElementById(id);
-const BARVY = [
-  {id:'teak',     name:'Teak',                        c:'#b0703a', sw:'#b87a40'},
-  {id:'orech',    name:'Ořech',                       c:'#7e4f2c', sw:'#855530'},
-  {id:'palisandr',name:'Palisandr',                   c:'#553322', sw:'#5a3624'},
-  {id:'antracit', name:'Antracit',                    c:'#5a5e60', sw:'#4a4e50'}
+const BARVY = [   // odstíny lazur; c = barva, kterou má natřené dřevo mít (náhled ji zobrazí přímo)
+  {id:'dub',      name:'Světlý dub', c:'#c49a5f'},
+  {id:'teak',     name:'Teak',       c:'#9c5a2b'},
+  {id:'orech',    name:'Ořech',      c:'#6a4126'},
+  {id:'palisandr',name:'Palisandr',  c:'#46271a'},
+  {id:'antracit', name:'Antracit',   c:'#3a3c3e'}
 ];
+BARVY.forEach(b => b.sw = b.c);
 const STRANY = [   // strany půdorysu při pohledu zepředu; okap je standardně vzadu (jako v pergola-3d.html)
   {s:'F', name:'Přední'},
   {s:'B', name:'Zadní'},
   {s:'R', name:'Levá'},     // +x — při pohledu zepředu vlevo
   {s:'L', name:'Pravá'}
 ];
-const state = {W:3, D:3, okap:'B', svod:'R', wall:false, clad:{}, floor:false, color:'teak', roof:'7016', slope:5, nater:{pergola:false, clad:false, floor:false}, deck:'osb', patky:true};
+const state = {W:3, D:3, okap:'B', svod:'R', wall:false, clad:{}, floor:false, color:'dub', roof:'7016', slope:5, nater:{pergola:false, clad:false, floor:false}, deck:'osb', patky:true};
 
 const canvas = $('c');
 const renderer = new THREE.WebGLRenderer({canvas, antialias:true, preserveDrawingBuffer:false});
@@ -888,6 +890,19 @@ function texFrom(canvasEl, srgb){
 }
 const woodTex = [texFrom(woodCanvas(11), true), texFrom(woodCanvas(29), true), texFrom(woodCanvas(47), true)];
 const endTex = texFrom(endGrainCanvas(5), true);
+/* pro natřené dřevo: stejná kresba, ale neutrálně šedá a světlá — barvu pak určuje jen lazura,
+   takže teak vypadá jako teak a antracit jako antracit (žlutá textura by barvy posouvala) */
+function grayWood(src){
+  const c = document.createElement('canvas'); c.width = src.width; c.height = src.height;
+  const g = c.getContext('2d'); g.drawImage(src, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height), p = d.data;
+  let sum = 0; for(let i = 0; i < p.length; i += 4) sum += 0.3*p[i] + 0.59*p[i+1] + 0.11*p[i+2];
+  const mean = sum/(p.length/4), k = 245/mean;
+  for(let i = 0; i < p.length; i += 4){ const l = (0.3*p[i] + 0.59*p[i+1] + 0.11*p[i+2]);
+    const v = Math.min(255, 255 - (255 - l*k)*1.6); p[i] = p[i+1] = p[i+2] = Math.max(0, v); }
+  g.putImageData(d, 0, 0); return c;
+}
+const woodTexGray = woodTex.map(t => texFrom(grayWood(t.image), true));
 const endMat = new THREE.MeshStandardMaterial({map:endTex, roughness:0.85, envMapIntensity:0.3});
 const WOOD_TYPES = {       // jemné rozdíly odstínu mezi prvky jako u skutečného řeziva
   post:[0.97, 0], plate:[0.95, 1], vaz:[0.96, 2], raft:[1.0, 1], deck:[1.03, 0],
@@ -897,21 +912,28 @@ const woodMats = {};
 const NENATRENO = '#ffffff';     // jen impregnace — vlastní barva KVH z textury
 const MAT_SKUPINA = {clad:'clad', floor:'floor', floorBeam:'floor'};   // ostatní prvky = pergola
 function buildWoodMats(){
-  const painted = new THREE.Color(BARVY.find(b => b.id === state.color).c), raw = new THREE.Color(NENATRENO);
+  const painted = new THREE.Color(BARVY.find(b => b.id === state.color).c).convertSRGBToLinear();
   Object.entries(WOOD_TYPES).forEach(([k, [f, ti]]) => {
-    const base = state.nater[MAT_SKUPINA[k] || 'pergola'] ? painted : raw;
+    const isP = state.nater[MAT_SKUPINA[k] || 'pergola'];
     woodMats[k] = [0, 1, 2].map(v => {
       const m = woodMats[k] && woodMats[k][v] ? woodMats[k][v]
-        : new THREE.MeshStandardMaterial({map:woodTex[(ti + v) % 3], bumpMap:woodTex[(ti + v) % 3], bumpScale:0.0006,
-                                         roughness:0.62, metalness:0, envMapIntensity:0.4});
-      const c = base.clone().convertSRGBToLinear();
-      const j = [1, 0.95, 1.05][v]*f;
-      m.color.setRGB(Math.min(1, c.r*j), Math.min(1, c.g*j), Math.min(1, c.b*j));
-      m.color.convertLinearToSRGB();
+        : new THREE.MeshStandardMaterial({bumpMap:woodTex[(ti + v) % 3], bumpScale:0.0006, metalness:0, envMapIntensity:0.4});
+      m.map = (isP ? woodTexGray : woodTex)[(ti + v) % 3];
+      m.roughness = isP ? 0.55 : 0.62;               // lazura mírně polomatná
+      const j = [1, 0.95, 1.05][v]*(isP ? 1 : f);
+      if(isP) m.color.setRGB(Math.min(1, painted.r*j), Math.min(1, painted.g*j), Math.min(1, painted.b*j));
+      else m.color.setRGB(j, j, j);                  // nenatřené = vlastní barva KVH z textury
+      m.needsUpdate = true;
       return m;
     });
   });
+  /* čela trámů (letokruhy) — natřená stejně jako pergola */
+  const endGray = endGrayTex || (endGrayTex = texFrom(grayWood(endTex.image), true));
+  if(state.nater.pergola){ endMat.map = endGray; endMat.color.copy(painted).multiplyScalar(0.85); }
+  else { endMat.map = endTex; endMat.color.setRGB(1, 1, 1); }
+  endMat.needsUpdate = true;
 }
+let endGrayTex = null;
 buildWoodMats();
 
 function grassCanvas(){
@@ -958,13 +980,40 @@ const wallMat = new THREE.MeshStandardMaterial({map:plasterTex, bumpMap:plasterT
 const soklMat = new THREE.MeshStandardMaterial({color:0x8b8a86, roughness:0.9});
 
 const BARVY_STRECHY = [      // odstíny trapézových plechů (RAL); barva se převádí do lineárního prostoru, aby nebyla vybledlá
-  {id:'7035', name:'Světle šedá RAL 7035', c:'#c5c7c4'},
-  {id:'7016', name:'Antracit RAL 7016', c:'#293133'},
-  {id:'6005', name:'Zelená RAL 6005', c:'#114232'},
-  {id:'8019', name:'Tmavě hnědá RAL 8019', c:'#3d3635'},
-  {id:'8004', name:'Cihlově červená RAL 8004', c:'#8e402a'}
+  {id:'7016', name:'Antracit – RAL 7016', c:'#293133'},
+  {id:'8017', name:'Hnědá – RAL 8017', c:'#45322e'},
+  {id:'9005', name:'Černá – RAL 9005', c:'#161718'},
+  {id:'3009', name:'Červenohnědá – RAL 3009', c:'#642424'},
+  {id:'3011', name:'Červená – RAL 3011', c:'#781f19'},
+  {id:'6005', name:'Zelená – RAL 6005', c:'#114232'},
+  {id:'9006', name:'Bílý hliník – RAL 9006', c:'#a3a6a5', kov:0.25, drs:0.6},     // lakovaný, matný, bez kresby
+  {id:'7024', name:'Grafitově šedá – RAL 7024', c:'#474a51'},
+  {id:'pozink', name:'Pozink', c:'#c9cfd3', kov:0.85, drs:0.3, tex:true}   // lesklý zinek s krystalickou kresbou
 ];
-function applyRoofColor(){ plechMat.color.set(BARVY_STRECHY.find(b => b.id === state.roof).c).convertSRGBToLinear(); }
+function zinkCanvas(){
+  /* „květ“ žárového zinku: nepravidelné krystaly s různým odleskem */
+  const N = 512, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d'), R = rnd(33);
+  g.fillStyle = '#d2d7da'; g.fillRect(0, 0, N, N);
+  for(let i = 0; i < 420; i++){
+    const x = R()*N, y = R()*N, r = 10 + R()*26, n = 5 + (R()*4|0), v = 180 + R()*60 | 0;
+    g.fillStyle = `rgb(${v},${v + 3},${v + 6})`; g.globalAlpha = 0.28;
+    g.beginPath();
+    for(let k = 0; k < n; k++){ const a = k/n*Math.PI*2 + R()*0.6, rr = r*(0.6 + R()*0.5); k ? g.lineTo(x + Math.cos(a)*rr, y + Math.sin(a)*rr) : g.moveTo(x + Math.cos(a)*rr, y + Math.sin(a)*rr); }
+    g.closePath(); g.fill();
+  }
+  g.globalAlpha = 1; return c;
+}
+let zinkTex = null;
+function applyRoofColor(){
+  const b = BARVY_STRECHY.find(x => x.id === state.roof) || BARVY_STRECHY[0];
+  if(b.tex && !zinkTex){ zinkTex = texFrom(zinkCanvas(), true); zinkTex.repeat.set(4, 4); }
+  plechMat.map = b.tex ? zinkTex : null; plechMat.needsUpdate = true;
+  plechMat.color.set(b.c).convertSRGBToLinear();
+  plechMat.metalness = b.kov != null ? b.kov : 0.15;
+  plechMat.roughness = b.drs != null ? b.drs : 0.55;
+  plechMat.envMapIntensity = b.kov ? 0.8 : 0.25;
+}
 
 /* ── zem a zahrada ── */
 const env = new THREE.Group(); scene.add(env);
@@ -1528,11 +1577,11 @@ function renderPlan(){
 function renderMaterials(){
   const r = G.rf, p = v => Math.round(v*1000);
   const items = [
-    ['Nosná konstrukce', 'KVH hranoly ze smrku — vysušené, hoblované, se sraženými hranami. Sloupy, pozednice, ' + (G.wall ? '' : 'vaznice, ') + 'krokve a vzpěry.'],
+    ['Nosná konstrukce', 'KVH hranoly 120×120 ze smrku — vysušené, hoblované, se sraženými hranami. Sloupy, pozednice, ' + (G.wall ? '' : 'vaznice, ') + 'krokve a vzpěry.'],
     ['Založení', (state.patky ? 'Betonové patky zhotovíme my; pozinkované kotvy „U“ přišroubované k patkám — dřevo nestojí v zemi.' : 'Betonové patky si zákazník vybetonuje sám podle našeho výkresu (rozmístění a rozměry patek); cena je bez patek.') + (G.wall ? ' Pozednice u zdi kotvená do zdiva — typ a délku kotev určíme podle zdiva a zateplení.' : '')],
     ['Střecha', `Pultová, sklon ${state.slope}° (${fmt1(G.slope*100)} %) směrem k okapu. Na ${fmt1(G.D + K.post)} m hloubky klesne o ${Math.round(G.slope*G.D*100)} cm.`],
     ['Záklop', state.deck === 'osb' ? 'OSB desky tl. 18 mm přes celou střechu.' : 'Palubky tl. 19 mm přes celou střechu.'],
-    ['Krytina', `Trapézový plech, ${BARVY_STRECHY.find(b => b.id === state.roof).name}.`],
+    ['Krytina', `Trapézový plech T18, ${BARVY_STRECHY.find(b => b.id === state.roof).name}.`],
     ['Oplechování', 'Lakovaný plech v barvě střechy: okapnice, závětrné lišty' + (G.wall ? ' a lemování ke zdi.' : ' a čelní lemování.')],
     ['Okapy', 'Plastový půlkulatý žlab s čely a svod ' + (state.svod === 'L' ? 'vlevo' : 'vpravo') + '.'],
     ['Ochrana dřeva', 'Impregnace proti houbám, plísním a hmyzu' + (state.nater.pergola ? ', poté nátěr lazurou ve 2 vrstvách ze všech stran.' : '. Bez nátěru.')]
